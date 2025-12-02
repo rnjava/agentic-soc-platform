@@ -8,6 +8,6 @@ services:
       - "6379:6379"
       - "8001:8001"
     environment:
-      - REDIS_ARGS=--requirepass redis-stack-password-for-ai-soc-framework
+      - REDIS_ARGS=--requirepass redis-stack-password-for-agentic-soc-platform
     volumes:
       - ./redis-data:/data

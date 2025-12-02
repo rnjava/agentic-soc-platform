@@ -14,12 +14,12 @@
     <a href="https://twitter.com/intent/follow?screen_name=viperrtp" target="_blank">
         <img src="https://img.shields.io/twitter/follow/viperrtp?logo=X&color=%20%23f5f5f5"
             alt="follow on X(Twitter)"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/graphs/commit-activity" target="_blank">
-        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/funnywolf/ai-soc-framework?labelColor=%20%2332b583&color=%20%2312b76a"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/" target="_blank">
-        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3Afunnywolf%2Fai-soc-framework%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/releases" target="_blank">
-        <img alt="Release" src="https://img.shields.io/github/v/release/funnywolf/ai-soc-framework?style=flat&label=Release&color=limegreen"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/graphs/commit-activity" target="_blank">
+        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/funnywolf/agentic-soc-platform?labelColor=%20%2332b583&color=%20%2312b76a"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/" target="_blank">
+        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3Afunnywolf%2Fagentic-soc-platform%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/releases" target="_blank">
+        <img alt="Release" src="https://img.shields.io/github/v/release/funnywolf/agentic-soc-platform?style=flat&label=Release&color=limegreen"></a>
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 </p>
 
 
-**AI SOC FRAMEWORK (ASF)** is a powerful, flexible, and open-source automated security operations platform. It integrates AI Agent capabilities with automation orchestration, supporting mainstream SIEM/SOAR scenarios to help enterprises efficiently build intelligent security operations systems.
+**Agentic SOC Platform** is a powerful, flexible, and open-source automated security operations platform. It integrates AI Agent capabilities with automation orchestration, supporting mainstream SIEM/SOAR scenarios to help enterprises efficiently build intelligent security operations systems.
 
 ## Core Features
 

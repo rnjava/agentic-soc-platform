@@ -14,12 +14,12 @@
     <a href="https://twitter.com/intent/follow?screen_name=viperrtp" target="_blank">
         <img src="https://img.shields.io/twitter/follow/viperrtp?logo=X&color=%20%23f5f5f5"
             alt="follow on X(Twitter)"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/graphs/commit-activity" target="_blank">
-        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/funnywolf/ai-soc-framework?labelColor=%20%2332b583&color=%20%2312b76a"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/" target="_blank">
-        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3Afunnywolf%2Fai-soc-framework%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
-    <a href="https://github.com/funnywolf/ai-soc-framework/releases" target="_blank">
-        <img alt="Release" src="https://img.shields.io/github/v/release/funnywolf/ai-soc-framework?style=flat&label=Release&color=limegreen"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/graphs/commit-activity" target="_blank">
+        <img alt="Commits last month" src="https://img.shields.io/github/commit-activity/m/funnywolf/agentic-soc-platform?labelColor=%20%2332b583&color=%20%2312b76a"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/" target="_blank">
+        <img alt="Issues closed" src="https://img.shields.io/github/issues-search?query=repo%3Afunnywolf%2Fagentic-soc-platform%20is%3Aclosed&label=issues%20closed&labelColor=%20%237d89b0&color=%20%235d6b98"></a>
+    <a href="https://github.com/funnywolf/agentic-soc-platform/releases" target="_blank">
+        <img alt="Release" src="https://img.shields.io/github/v/release/funnywolf/agentic-soc-platform?style=flat&label=Release&color=limegreen"></a>
 </p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 </p>
 
 
-**AI SOC FRAMEWORK (ASF)** 是一个功能强大、灵活且开源的自动化安全运营平台。它集成了 AI Agent 能力与自动化编排，支持主流
+**Agentic SOC Platform** 是一个功能强大、灵活且开源的自动化安全运营平台。它集成了 AI Agent 能力与自动化编排，支持主流
 SIEM/SOAR 场景，帮助企业高效构建智能化安全运营体系。
 
 ## 核心功能
