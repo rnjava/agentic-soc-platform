@@ -1,4 +1,4 @@
-from Lib.redis_stream_api import RedisStreamAPI
+from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
 
 mail_records = [
     # ----------------------------------------------------

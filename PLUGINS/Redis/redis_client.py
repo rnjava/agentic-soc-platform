@@ -1,7 +1,7 @@
 import redis
 
-from PLUGINS.Redis.CONFIG import REDIS_URL
 from Lib.log import logger
+from PLUGINS.Redis.CONFIG import REDIS_URL
 
 
 class RedisClient(object):

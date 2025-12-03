@@ -5,7 +5,7 @@ from Lib.api import data_return
 from Lib.baseview import BaseView
 from Lib.configs import CODE_MSG_ZH, CODE_MSG_EN
 from Lib.log import logger
-from Lib.redis_stream_api import RedisStreamAPI
+from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
 
 
 class WebhookSplunkView(BaseView):

@@ -11,7 +11,7 @@ from Automation.Handle.playbook import Playbook
 from PLUGINS.Redis.CONFIG import REDIS_STREAM_STORE_DAYS
 from Lib.engine import Engine
 from Lib.log import logger
-from Lib.redis_stream_api import RedisStreamAPI
+from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
 from Lib.xcache import Xcache
 from PLUGINS.SIRP.CONFIG import ASP_REST_API_TOKEN
 

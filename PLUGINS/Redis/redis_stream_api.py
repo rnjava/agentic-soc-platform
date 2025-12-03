@@ -6,7 +6,7 @@ import redis
 
 from Lib.configs import REDIS_CONSUMER_GROUP, REDIS_CONSUMER_NAME
 from Lib.log import logger
-from Lib.redis_client import RedisClient
+from PLUGINS.Redis.redis_client import RedisClient
 
 
 class RedisStreamAPI:

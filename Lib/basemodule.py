@@ -5,7 +5,7 @@ from langgraph.graph.state import CompiledStateGraph
 from Lib.baseapi import BaseAPI
 from Lib.configs import REDIS_CONSUMER_GROUP
 from Lib.llmapi import AgentState
-from Lib.redis_stream_api import RedisStreamAPI
+from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
 
 
 class BaseModule(BaseAPI):
