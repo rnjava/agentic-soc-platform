@@ -32,7 +32,7 @@ class MainMonitor(object):
         logger.info("启动后台服务")
 
         # add api user
-        logger.info("写入ASF_TOKEN到缓存")
+        logger.info("写入ASP_TOKEN到缓存")
         api_usr = User()
         api_usr.username = "api_token"
         api_usr.is_active = True
