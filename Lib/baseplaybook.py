@@ -1,10 +1,21 @@
+import json
+
+from langchain_core.messages import (
+    BaseMessage,
+    SystemMessage,
+    HumanMessage,
+    AIMessage,
+    ToolMessage
+)
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.state import CompiledStateGraph
+from pydantic import BaseModel
 
 from Lib.baseapi import BaseAPI
 from Lib.llmapi import AgentState
 from Lib.log import logger
+from PLUGINS.SIRP.sirpapi import PlaybookMessage
 
 
 class BasePlaybook(BaseAPI):
@@ -40,6 +51,71 @@ class LanggraphPlaybook(BasePlaybook):
             self.agent_state = AgentState()
         for event in self.graph.stream(self.agent_state, config, stream_mode="values"):
             self.logger.debug(event)
+
+    def add_message_to_playbook(self, message: BaseMessage | BaseModel, playbook_rowid=None, node=None):
+        if isinstance(message, SystemMessage):
+            fields = [
+                {"id": "type", "value": "SystemMessage"},
+                {"id": "node", "value": node},
+                {"id": "playbook_rowid", "value": playbook_rowid},
+                {"id": "content", "value": message.content},
+                {"id": "json", "value": None},
+            ]
+        elif isinstance(message, HumanMessage):
+            fields = [
+                {"id": "type", "value": "HumanMessage"},
+                {"id": "node", "value": node},
+                {"id": "playbook_rowid", "value": playbook_rowid},
+                {"id": "content", "value": message.content},
+                {"id": "json", "value": None},
+            ]
+        elif isinstance(message, AIMessage):
+            if hasattr(message, 'tool_calls') and message.tool_calls:
+                fields = [
+                    {"id": "type", "value": "AIMessage"},
+                    {"id": "node", "value": node},
+                    {"id": "playbook_rowid", "value": playbook_rowid},
+                    {"id": "content", "value": message.content},
+                    {"id": "json", "value": json.dumps(message.tool_calls)},
+                ]
+            else:
+                fields = [
+                    {"id": "type", "value": "AIMessage"},
+                    {"id": "node", "value": node},
+                    {"id": "playbook_rowid", "value": playbook_rowid},
+                    {"id": "content", "value": message.content},
+                    {"id": "json", "value": None},
+                ]
+        elif isinstance(message, ToolMessage):
+            try:
+                json_data = {"name": message.name, "tool_call_id": message.tool_call_id, "result": json.loads(message.content)}
+            except json.decoder.JSONDecodeError:
+                json_data = {"name": message.name, "tool_call_id": message.tool_call_id, "result": message.content}
+
+            fields = [
+                {"id": "type", "value": "ToolMessage"},
+                {"id": "node", "value": node},
+                {"id": "playbook_rowid", "value": playbook_rowid},
+                {"id": "json", "value": json.dumps(json_data)},
+            ]
+        elif isinstance(message, BaseModel):
+            fields = [
+                {"id": "type", "value": "AIMessage"},
+                {"id": "node", "value": node},
+                {"id": "playbook_rowid", "value": playbook_rowid},
+                {"id": "content", "value": None},
+                {"id": "json", "value": message.model_dump_json()},
+            ]
+        else:
+            fields = [
+                {"id": "role", "value": message.type},
+                {"id": "node", "value": node},
+                {"id": "playbook_rowid", "value": playbook_rowid},
+                {"id": "content", "value": message.content},
+                {"id": "json", "value": None},
+            ]
+        row_id = PlaybookMessage.create(fields)
+        return row_id
 
     def run(self):
         self.run_graph()

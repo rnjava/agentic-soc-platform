@@ -218,6 +218,38 @@ class Case(object):
         return case
 
     @staticmethod
+    def get_raw_data(rowid, include_system_fields=False) -> Dict:
+        case = WorksheetRow.get(Case.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
+
+        useful_case_fields = ["rowId", "title", 'case_status', 'created_date', 'tags', 'severity', 'type', 'description', 'close_reason', 'alert_date',
+                              'case_id',
+                              'respond_time', 'note', 'acknowledged_date']
+
+        case_clean = {key: case[key] for key in useful_case_fields if key in case}
+
+        # alert id
+        alerts = WorksheetRow.relations(Case.WORKSHEET_ID, rowid, Case.ALERT_FIELD_ID, relation_worksheet_id=Alert.WORKSHEET_ID,
+                                        include_system_fields=include_system_fields)
+        alerts_clean = []
+        for alert in alerts:
+            useful_alert_fields = ["rowId", 'severity', 'rule_id', 'rule_name', 'id']
+            alert_clean = {key: alert[key] for key in useful_alert_fields if key in alert}
+
+            artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, alert.get("rowId"), Alert.ARTIFACT_FIELD_ID, relation_worksheet_id=Artifact.WORKSHEET_ID,
+                                               include_system_fields=include_system_fields)
+            artifacts_clean = []
+            for artifact in artifacts:
+                useful_artifact_fields = ["rowId", "type", "value", "enrichment", 'is_whitelisted', 'is_evidence']
+                artifact_clean = {key: artifact[key] for key in useful_artifact_fields if key in artifact}
+                artifacts_clean.append(artifact_clean)
+
+            alert_clean[Alert.ARTIFACT_FIELD_ID] = artifacts_clean
+            alerts_clean.append(alert_clean)
+
+        case_clean[Case.ALERT_FIELD_ID] = alerts_clean
+        return case_clean
+
+    @staticmethod
     def create(case: InputCase):
         case_fields = [
             {"id": "title", "value": case["title"]},
@@ -343,7 +375,6 @@ class PlaybookMessage(object):
 
 
 class Notice(object):
-
     @staticmethod
     def send(user, title, body=None):
         result = requests.post(SIRP_NOTICE_WEBHOOK, json={"title": title, "body": body, "user": user})

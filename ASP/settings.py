@@ -83,6 +83,7 @@ LOGGING = {
             'class': 'logging.FileHandler',
             'formatter': 'standard',
             'filename': os.path.join(settings.BASE_DIR, 'Docker', 'log', 'django.log'),
+            'encoding': 'utf-8',
         },
 
     },

@@ -15,9 +15,8 @@ from AGENTS.siem_agent import SIEMAgent
 from AGENTS.ti_agent import TIAgent
 from Lib.baseplaybook import LanggraphPlaybook
 from PLUGINS.LLM.llmapi import LLMAPI
-from PLUGINS.SIRP.nocolyapi import WorksheetRow
-from PLUGINS.SIRP.sirpapi import Alert, Artifact
 from PLUGINS.SIRP.sirpapi import Case
+from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook
 
 MAX_ITERATIONS = 3
 PROMPT_LANG = None
@@ -195,7 +194,6 @@ class Playbook(LanggraphPlaybook):
     def __init__(self):
         super().__init__()  # do not delete this code
         self.analyst_graph: CompiledStateGraph
-        self.main_graph: CompiledStateGraph
         self.max_iterations = MAX_ITERATIONS
         self.build_analyst_graph()
         self.build_main_graph()
@@ -225,7 +223,13 @@ class Playbook(LanggraphPlaybook):
             llm_api = LLMAPI()
             base_llm = llm_api.get_model(tag=["powerful", "function_calling"])
             llm_with_tools = base_llm.bind_tools([SIEMAgent.search, CMDBAgent.query_asset, TIAgent.lookup])
-            response = llm_with_tools.invoke(messages)
+            response: AIMessage = llm_with_tools.invoke(messages)
+
+            # update record
+            for message in messages:
+                self.add_message_to_playbook(message, self.param("playbook_rowid"), node="analyst_node")
+
+            self.add_message_to_playbook(response, self.param("playbook_rowid"), node="analyst_node")
 
             # 返回更新的消息列表，LangGraph 会自动追加到 state.messages
             return {"messages": [response]}
@@ -255,9 +259,6 @@ class Playbook(LanggraphPlaybook):
 
             # get answer reasoning
             last_message = state.messages[-1]
-            llm_api = LLMAPI()
-            formatter_llm = llm_api.get_model(tag=["cheap", "structured_output"])
-            structured_llm = formatter_llm.with_structured_output(AnalystOutput)
 
             system_prompt_template = self.load_system_prompt_template("Analyst_Final_System", lang=PROMPT_LANG)
             system_message = system_prompt_template.format()
@@ -273,9 +274,17 @@ class Playbook(LanggraphPlaybook):
                 human_message
             ]
 
-            response = structured_llm.invoke(messages)
-            self.logger.info(f"[final_answer_node] Question: {state.question}")
-            self.logger.info(f"[final_answer_node] Answer: {response.answer}")
+            llm_api = LLMAPI()
+            formatter_llm = llm_api.get_model(tag=["cheap", "structured_output"])
+            structured_llm = formatter_llm.with_structured_output(AnalystOutput)
+            response: AnalystOutput = structured_llm.invoke(messages)
+
+            # update record
+            for message in messages:
+                self.add_message_to_playbook(message, self.param("playbook_rowid"), node="final_answer_node")
+
+            self.add_message_to_playbook(response, self.param("playbook_rowid"), node="final_answer_node")
+
             return {
                 "answer": response.answer,
                 "reasoning": response.reasoning,
@@ -314,18 +323,11 @@ class Playbook(LanggraphPlaybook):
         def intent_node(state: MainState):
             """意图识别：确定总目标"""
             self.logger.info("Intent Node Invoked")
+
             # 获取数据
             rowid = self.param("rowid")
 
-            case = WorksheetRow.get(Case.WORKSHEET_ID, rowid, include_system_fields=False)
-
-            alerts = WorksheetRow.relations(Case.WORKSHEET_ID, rowid, "alert", relation_worksheet_id=Alert.WORKSHEET_ID, include_system_fields=False)
-            for alert in alerts:
-                artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, alert.get("rowId"), "artifact", relation_worksheet_id=Artifact.WORKSHEET_ID,
-                                                   include_system_fields=False)
-                alert["artifact"] = artifacts
-            case["alert"] = alerts
-            # case = json.dumps(case, indent=2)
+            case = Case.get_raw_data(rowid=rowid)
 
             user_intent = self.param("user_input")
 
@@ -342,11 +344,6 @@ class Playbook(LanggraphPlaybook):
             few_shot_examples = [
             ]
 
-            # 运行
-            llm_api = LLMAPI()
-
-            llm = llm_api.get_model(tag="fast")
-
             # 构建消息列表
             messages = [
                 system_message,
@@ -354,12 +351,21 @@ class Playbook(LanggraphPlaybook):
                 human_message
             ]
 
-            resp = llm.invoke(messages)
+            # 运行
+            llm_api = LLMAPI()
+            llm = llm_api.get_model(tag="fast")
+            response: AIMessage = llm.invoke(messages)
+
+            # update record
+            for message in messages:
+                self.add_message_to_playbook(message, self.param("playbook_rowid"), node="intent_node")
+
+            self.add_message_to_playbook(response, self.param("playbook_rowid"), node="intent_node")
 
             node_out = {
                 "case": case,
                 "user_intent": user_intent,
-                "hunting_objective": resp.content,
+                "hunting_objective": response.content,
                 "iteration_count": 0,
                 "findings": []
             }
@@ -419,18 +425,21 @@ class Playbook(LanggraphPlaybook):
             ]
             llm = llm.with_structured_output(HuntingPlan)
 
-            plan_result: HuntingPlan = llm.invoke(messages)
+            response: HuntingPlan = llm.invoke(messages)
 
             current_record = PlanningRecord(
                 iteration=iteration_count,
-                rationale=plan_result.rationale,
-                plan=plan_result.current_plan
+                rationale=response.rationale,
+                plan=response.current_plan
             )
-            current_plan = plan_result.current_plan
+            current_plan = response.current_plan
 
             self.logger.info(f"Generated Plan for Round {iteration_count}")
-            for plan in current_plan:
-                self.logger.info(f" - {plan}")
+
+            # update record
+            for message in messages:
+                self.add_message_to_playbook(message, self.param("playbook_rowid"), node="planner_node")
+            self.add_message_to_playbook(response, self.param("playbook_rowid"), node="planner_node")
 
             node_out = {
                 "current_plan": current_plan,
@@ -513,11 +522,6 @@ class Playbook(LanggraphPlaybook):
             few_shot_examples = [
             ]
 
-            # 运行
-            llm_api = LLMAPI()
-
-            llm = llm_api.get_model(tag=["powerful"])
-
             # 构建消息列表
             messages = [
                 system_message,
@@ -525,18 +529,30 @@ class Playbook(LanggraphPlaybook):
                 human_message
             ]
 
-            resp = llm.invoke(messages)
+            # 运行
+            llm_api = LLMAPI()
+            llm = llm_api.get_model(tag=["powerful"])
+            response = llm.invoke(messages)
 
             case_row_id = self.param("rowid")
 
             case_field = [
-                {"id": "threat_hunting_report", "value": resp.content},
+                {"id": "threat_hunting_report", "value": response.content},
                 {"id": "threat_hunting_tool_calls", "value": json.dumps(total_tool_calls)},
             ]
 
             Case.update(case_row_id, case_field)
 
-            node_out = {"report": resp.content}
+            # update record
+            for message in messages:
+                self.add_message_to_playbook(message, self.param("playbook_rowid"), node="planner_node")
+            self.add_message_to_playbook(response, self.param("playbook_rowid"), node="planner_node")
+
+            node_out = {"report": response.content}
+
+            # update playbook status
+            SIRPPlaybook.update_status_and_remark(self.param("playbook_rowid"), "Success", "Get suggestion by ai agent completed.")  # Success/Failed
+
             return node_out
 
         # --- 构建主图 ---
@@ -580,7 +596,12 @@ if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ASP.settings")
     django.setup()
 
-    params_debug = {'rowid': 'e07f7b79-caac-43aa-b7d3-d99d2354c5c9', 'worksheet': 'case', "user_input": "Has the host in the case been infected"}
+    params_debug = {
+        'rowid': '47da1d00-c9bf-4b5f-8ab8-8877ec292b98',
+        'worksheet': 'case',
+        "user_input": "Has the host in the case been infected",
+        "playbook_rowid": "9fb4a3e1-6ae7-47b2-9b15-95264272dff5"
+    }
     module = Playbook()
     module._params = params_debug
     module.run()
