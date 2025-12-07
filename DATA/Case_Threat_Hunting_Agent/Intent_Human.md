@@ -1,6 +1,6 @@
 以下是本次会话的数据：
 
-### 案件背景 (Case Context)
+### 案件原始信息 (Case Context)
 
 {case}
 

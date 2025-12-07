@@ -30,7 +30,7 @@ class PlanningRecord(BaseModel):
     # 可以在这里增加 helper 方法，方便转字符串
     def to_markdown(self) -> str:
         tasks_str = ", ".join(self.plan)
-        return (f"### Round {self.iteration}\n"
+        return (f"#### Round {self.iteration}\n"
                 f"**Reasoning:** {self.rationale}\n"
                 f"**Tasks Executed:** {tasks_str}\n")
 
@@ -54,18 +54,18 @@ class Finding(BaseModel):
     tool_calls: List = Field(default_factory=list, description="工具调用记录")
 
     def to_markdown(self) -> str:
-        return (f"---\n"
+        return (f"\n"
                 f"**Question:** {self.question}\n"
                 f"**Reasoning:** {self.reasoning}\n"
                 f"**Answer:** {self.answer}\n"
-                f"---\n"
+                f"\n\n\n"
                 )
 
     def to_markdown_for_planning(self) -> str:
-        return (f"---\n"
+        return (f"\n"
                 f"**Question:** {self.question}\n"
                 f"**Answer:** {self.answer}\n"
-                f"---\n"
+                f"\n\n\n"
                 )
 
 
@@ -402,7 +402,8 @@ class Playbook(LanggraphPlaybook):
 
             findings_str = "\n".join(history_md_list)
 
-            human_message = self.load_human_prompt_template("Planner_Human", lang=PROMPT_LANG).format(hunting_objective=hunting_objective,
+            human_message = self.load_human_prompt_template("Planner_Human", lang=PROMPT_LANG).format(case=state.case,
+                                                                                                      hunting_objective=hunting_objective,
                                                                                                       findings=findings_str,
                                                                                                       iteration_count=iteration_count,
                                                                                                       )

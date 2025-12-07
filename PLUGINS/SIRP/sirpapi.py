@@ -362,7 +362,7 @@ class Playbook(object):
         return row_id
 
     @staticmethod
-    def update_status_and_remark(row_id, status: StatusType, remark):
+    def update_status_and_remark(row_id, status: PlaybookStatusType, remark):
         fields = [
             {"id": "job_status", "value": status},
             {"id": "remark", "value": remark},
