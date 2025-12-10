@@ -58,6 +58,6 @@ ASP 通过简化的多阶段流程处理安全告警和事件：
 
 ## 404星链计划
 
-<img src lazysrc="https://github.com/knownsec/404StarLink-Project/raw/master/logo.png" width="30%">
+<img src="./Docker/Img/logo.png" width="30%">
 
 Agentic SOC Platform 现已加入 [404星链计划](https://github.com/knownsec/404StarLink)
