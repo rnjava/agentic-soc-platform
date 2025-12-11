@@ -1,5 +1,6 @@
 import json
 import os
+from enum import StrEnum
 from typing import TypedDict, List, Optional, Union, Dict, Any, NotRequired, Literal
 
 import requests
@@ -342,7 +343,14 @@ class Case(object):
             return f.read()
 
 
-PlaybookStatusType = Literal["Success", "Failed", "Pending","Running"]
+PlaybookStatusType = Literal["Success", "Failed", "Pending", "Running"]
+
+
+class PlaybookStatus(StrEnum):
+    SUCCESS = 'Success'
+    FAILED = 'Failed'
+    PENDING = 'Pending'
+    RUNNING = 'Running'
 
 
 class Playbook(object):
@@ -374,8 +382,6 @@ class Playbook(object):
         ]
         row_id = WorksheetRow.update(Playbook.WORKSHEET_ID, row_id, fields)
         return row_id
-
-
 
     @staticmethod
     def get_pending_playbooks():
