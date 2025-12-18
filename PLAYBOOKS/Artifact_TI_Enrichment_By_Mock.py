@@ -17,7 +17,7 @@ class Playbook(BasePlaybook):
             artifact = Artifact.get(self.param_source_rowid)
             self.logger.info(f"Querying threat intelligence for : {artifact}")
 
-            # 模拟查询威胁情报数据库,在实际应用中，这里应该调用外部API或数据库进行查询
+            # Simulate querying a threat intelligence database. In a real application, this should call an external API or database.
             time.sleep(5)
             if artifact.get("type") not in ["ip", "domain", "hash", "vm_ip"]:
                 ti_result = {"error": "Unsupported type. Please use 'ip', 'domain', or 'hash'."}

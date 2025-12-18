@@ -14,14 +14,14 @@ from PLUGINS.SIRP.sirpapi import Case
 
 
 class ConfidenceLevel(str, Enum):
-    """置信度等级"""
+    """Confidence Level"""
     LOW = "Low"
     MEDIUM = "Medium"
     HIGH = "High"
 
 
 class Severity(str, Enum):
-    """置信度等级"""
+    """Severity Level"""
     INFO = "Info"
     LOW = "Low"
     MEDIUM = "Medium"
@@ -52,21 +52,21 @@ class Playbook(LanggraphPlaybook):
 
     def init(self):
         def preprocess_node(state: AgentState):
-            """预处理数据"""
+            """Preprocess data"""
             case = Case.get_raw_data(self.param_source_rowid)
             state.case = case
             return state
 
         # 定义node
         def analyze_node(state: AgentState):
-            """AI分析Case数据"""
+            """AI analyzes Case data"""
 
-            # 加载system prompt
+            # Load system prompt
             system_prompt_template = self.load_system_prompt_template("L3_SOC_Analyst")
 
             system_message = system_prompt_template.format()
 
-            # 构建few-shot示例
+            # Construct few-shot examples
             few_shot_examples = [
                 # HumanMessage(
                 #     content=json.dumps({
@@ -80,12 +80,12 @@ class Playbook(LanggraphPlaybook):
                 # ),
             ]
 
-            # 运行
+            # Run
             llm_api = LLMAPI()
 
             llm = llm_api.get_model(tag="structured_output")
 
-            # 构建消息列表
+            # Construct message list
             messages = [
                 system_message,
                 *few_shot_examples,
@@ -96,12 +96,12 @@ class Playbook(LanggraphPlaybook):
             state.analyze_result = response.model_dump()
 
             # response = llm.invoke(messages)
-            # response = LLMAPI.extract_think(response)  # langchain chatollama bug临时方案
+            # response = LLMAPI.extract_think(response)  # Temporary solution for langchain chatollama bug
             # state.analyze_result = json.loads(response.content)
             return state
 
         def output_node(state: AgentState):
-            """处理分析结果"""
+            """Process analysis results"""
 
             analyze_result: AnalyzeResult = AnalyzeResult(**state.analyze_result)
 
@@ -118,7 +118,7 @@ class Playbook(LanggraphPlaybook):
             self.update_playbook("Success", "Get suggestion by ai agent completed.")
             return state
 
-        # 编译graph
+        # Compile graph
         workflow = StateGraph(AgentState)
 
         workflow.add_node("preprocess_node", preprocess_node)

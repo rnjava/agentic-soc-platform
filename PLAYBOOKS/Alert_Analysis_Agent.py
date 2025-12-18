@@ -19,8 +19,8 @@ class AgentState(BaseModel):
 
 
 class Playbook(LanggraphPlaybook):
-    TYPE = "ALERT"  # 分类标签
-    NAME = "Alert Analysis Agent"  # 剧本名称
+    TYPE = "ALERT"  # Classification tag
+    NAME = "Alert Analysis Agent"  # Playbook name
 
     def __init__(self):
         super().__init__()  # do not delete this code
@@ -28,7 +28,7 @@ class Playbook(LanggraphPlaybook):
 
     def init(self):
         def preprocess_node(state: AgentState):
-            """预处理数据"""
+            """Preprocess data"""
             # worksheet = self.param("worksheet")
             alert = Alert.get(self.param_source_rowid)
             state.alert = alert
@@ -36,14 +36,14 @@ class Playbook(LanggraphPlaybook):
 
         # 定义node
         def analyze_node(state: AgentState):
-            """AI分析告警数据"""
+            """AI analyzes alert data"""
 
-            # 加载system prompt
+            # Load system prompt
             system_prompt_template = self.load_system_prompt_template("L3_SOC_Analyst")
 
             system_message = system_prompt_template.format()
 
-            # 构建few-shot示例
+            # Construct few-shot examples
             few_shot_examples = [
                 # HumanMessage(
                 #     content=json.dumps({
@@ -57,24 +57,24 @@ class Playbook(LanggraphPlaybook):
                 # ),
             ]
 
-            # 运行
+            # Run
             llm_api = LLMAPI()
 
             llm = llm_api.get_model(tag="fast")
 
-            # 构建消息列表
+            # Construct message list
             messages = [
                 system_message,
                 *few_shot_examples,
                 HumanMessage(content=json.dumps(state.alert))
             ]
             response = llm.invoke(messages)
-            response = LLMAPI.extract_think(response)  # langchain chatollama bug临时方案
+            response = LLMAPI.extract_think(response)  # Temporary solution for langchain chatollama bug
             state.suggestion = response.content
             return state
 
         def output_node(state: AgentState):
-            """处理分析结果"""
+            """Process analysis results"""
             suggestion = state.suggestion
             fields = [
                 {"id": "suggestion_ai", "value": suggestion},
@@ -87,7 +87,7 @@ class Playbook(LanggraphPlaybook):
             self.agent_state = state
             return state
 
-        # 编译graph
+        # Compile graph
         workflow = StateGraph(AgentState)
 
         workflow.add_node("preprocess_node", preprocess_node)

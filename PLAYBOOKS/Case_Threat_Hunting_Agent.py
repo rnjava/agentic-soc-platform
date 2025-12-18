@@ -23,12 +23,12 @@ PROMPT_LANG = None
 
 
 class PlanningRecord(BaseModel):
-    """用于存储单轮规划的结构化记录"""
-    iteration: int = Field(description="当前的轮次")
-    rationale: str = Field(description="规划的推理思路")
-    plan: List[str] = Field(description="生成的具体任务列表")
+    """Structured record for storing single-round planning"""
+    iteration: int = Field(description="The current round")
+    rationale: str = Field(description="The reasoning for the plan")
+    plan: List[str] = Field(description="The specific list of tasks generated")
 
-    # 可以在这里增加 helper 方法，方便转字符串
+    # Helper methods can be added here to facilitate string conversion
     def to_markdown(self) -> str:
         tasks_str = ", ".join(self.plan)
         return (f"#### Round {self.iteration}\n"
@@ -37,22 +37,22 @@ class PlanningRecord(BaseModel):
 
 
 class AnalystOutput(BaseModel):
-    answer: str = Field(description="对调查问题的最终、简洁的回答")
-    reasoning: str | List[str] = Field(description="支持最终结论的详细推理过程和关键证据。")
+    answer: str = Field(description="The final, concise answer to the investigation question")
+    reasoning: str | List[str] = Field(description="The detailed reasoning process and key evidence supporting the final conclusion.")
 
 
-# 定义 Planner 的结构化输出
+# Define the structured output of the Planner
 class HuntingPlan(BaseModel):
-    # 允许一次生成多个任务，或者为空列表表示结束
-    current_plan: List[str] = Field(description="接下来需要并行调查的具体问题列表。如果没有更多问题，返回空列表。")
-    rationale: str = Field(description="制定该计划的理由")
+    # Allows generating multiple tasks at once, or an empty list to indicate the end
+    current_plan: List[str] = Field(description="A list of specific questions to be investigated in parallel next. Returns an empty list if there are no more questions.")
+    rationale: str = Field(description="The reason for making this plan")
 
 
 class Finding(BaseModel):
-    question: str = Field(description="需要调查的问题")
-    answer: str = Field(description="调查得到的答案")
-    reasoning: str | List[str] = Field(description="调查的推理过程")
-    tool_calls: List = Field(default_factory=list, description="工具调用记录")
+    question: str = Field(description="The question to be investigated")
+    answer: str = Field(description="The answer obtained from the investigation")
+    reasoning: str | List[str] = Field(description="The reasoning process of the investigation")
+    tool_calls: List = Field(default_factory=list, description="Tool call records")
 
     def to_markdown(self) -> str:
         return (f"\n"
@@ -65,42 +65,42 @@ class Finding(BaseModel):
 
 class AnalystState(BaseModel):
     """
-    子图状态：负责单次调查任务的执行。
-    继承自 Pydantic BaseModel，支持默认值和数据校验。
+    Subgraph state: responsible for the execution of a single investigation task.
+    Inherits from Pydantic BaseModel, supports default values and data validation.
     """
     model_config = ConfigDict(
         arbitrary_types_allowed=True
     )
-    # 消息历史
+    # Message history
     messages: Annotated[
         List[AnyMessage],
         add_messages
     ] = Field(
         default_factory=list,
-        description="用于存储所有节点间的消息传递历史。"
+        description="Used to store the message passing history between all nodes."
     )
 
-    # 输入：要调查的具体问题
+    # Input: The specific question to be investigated
     question: str = Field(
-        description="要调查的具体问题，通常是用户输入的起点。"
+        description="The specific question to be investigated, usually the starting point of user input."
     )
 
-    # 输入：上下文
+    # Input: Context
     case: Dict = Field(
         default_factory=dict,
-        description="提供给本次调查任务的外部上下文或额外数据。"
+        description="External context or additional data provided for this investigation task."
     )
 
-    # 输出：最终结论
+    # Output: Final conclusion
     answer: str = Field(
         default="",
-        description="调查任务的最终结论或摘要。"
+        description="The final conclusion or summary of the investigation task."
     )
 
-    # 输出：推理过程
+    # Output: Reasoning process
     reasoning: str | List[str] = Field(
         default="",
-        description="得出结论的详细推理步骤及证据。"
+        description="Detailed reasoning steps and evidence for the conclusion."
     )
 
     tool_calls: Annotated[
@@ -114,50 +114,50 @@ class AnalystState(BaseModel):
 
 class MainState(BaseModel):
     """
-    [主图状态]
-    负责全局规划与汇总。
+    [Main graph state]
+    Responsible for global planning and summarization.
     """
     model_config = ConfigDict(
         arbitrary_types_allowed=True
     )
-    # 原始案件/全局上下文
+    # Original case/global context
     case: Dict = Field(
         default_factory=dict,
-        description="原始案件或全局上下文数据。"
+        description="Original case or global context data."
     )
 
-    # 用户意图
+    # User intent
     user_intent: str = Field(
         default="",
-        description="用户提出的初始请求或核心意图。"
+        description="The initial request or core intent proposed by the user."
     )
 
-    # 确立的总目标
+    # Established overall goal
     hunting_objective: str = Field(
         default="",
-        description="根据用户意图确立的，整个图需要达成的总目标。"
+        description="The overall goal that the entire graph needs to achieve, established based on the user's intent."
     )
 
-    # 核心记忆：子图返回结果的汇总
-    # 使用 operator.add 确保并行子图返回的结果能被正确追加合并
+    # Core memory: summary of subgraph return results
+    # Use operator.add to ensure that the results returned by parallel subgraphs can be correctly appended and merged
     findings: Annotated[
         List[Finding],
         operator.add
     ] = Field(
         default_factory=list,
-        description="从子图或子任务中收集到的所有结果或发现的列表。"
+        description="A list of all results or findings collected from subgraphs or subtasks."
     )
 
-    # 当前批次的计划任务列表
+    # List of planned tasks for the current batch
     current_plan: List[str] = Field(
         default_factory=list,
-        description="当前迭代或批次中需要执行的计划任务列表。"
+        description="A list of planned tasks to be executed in the current iteration or batch."
     )
 
-    # 迭代计数
+    # Iteration count
     iteration_count: int = Field(
         default=0,
-        description="主图循环或迭代的次数计数。"
+        description="A count of the number of main graph loops or iterations."
     )
 
     planning_history: Annotated[
@@ -165,13 +165,13 @@ class MainState(BaseModel):
         operator.add
     ] = Field(
         default_factory=list,
-        description="结构化的推理历史记录。"
+        description="Structured reasoning history record."
     )
 
-    # 最终输出
+    # Final output
     report: str = Field(
         default="",
-        description="根据所有 Findings 汇总整理出的最终报告。"
+        description="The final report summarized and organized based on all Findings."
     )
 
 
@@ -192,7 +192,7 @@ class Playbook(LanggraphPlaybook):
 
             messages = state.messages
 
-            # 如果是第一次进入（messages为空），构造初始 System/Human Prompt
+            # If it is the first time to enter (messages is empty), construct the initial System/Human Prompt
             if not messages:
                 system_prompt_template = self.load_system_prompt_template("Analyst_System", lang=PROMPT_LANG)
                 system_message = system_prompt_template.format()
@@ -219,13 +219,13 @@ class Playbook(LanggraphPlaybook):
 
             self.add_message_to_playbook(response, node="analyst_node")
 
-            # 返回更新的消息列表，LangGraph 会自动追加到 state.messages
+            # Returns an updated list of messages, which LangGraph will automatically append to state.messages
             return {"messages": [response]}
 
-        # 工具节点
+        # Tool node
         tool_node = ToolNode([SIEMAgent.search, CMDBAgent.query_asset, TIAgent.lookup])
 
-        # 结果生成节点：当没有工具调用时，负责把最后的消息转化为结构化输出
+        # Result generation node: when there is no tool call, it is responsible for converting the last message into a structured output
         def final_answer_node(state: AnalystState):
             self.logger.info("Final Answer Node Invoked")
 
@@ -279,7 +279,7 @@ class Playbook(LanggraphPlaybook):
                 "tool_calls": tool_calls
             }
 
-        # 条件判断
+        # Conditional judgment
         def should_continue(state: AnalystState):
             last_message = state.messages[-1]
             if last_message.tool_calls:
@@ -288,12 +288,12 @@ class Playbook(LanggraphPlaybook):
             self.logger.info("Routing to Finalizer Node")
             return 'finalizer'
 
-        # --- 构建图 ---
+        # --- Build graph ---
         builder = StateGraph(AnalystState)
 
         builder.add_node('analyst_node', analyst_node)
         builder.add_node('tool', tool_node)
-        builder.add_node('finalizer', final_answer_node)  # 新增节点
+        builder.add_node('finalizer', final_answer_node)  # Add new node
 
         builder.add_edge(START, 'analyst_node')
 
@@ -302,43 +302,43 @@ class Playbook(LanggraphPlaybook):
             should_continue,
         )
 
-        builder.add_edge('tool', 'analyst_node')  # 工具执行完 -> 回到模型看结果
-        builder.add_edge('finalizer', END)  # 格式化完 -> 结束
+        builder.add_edge('tool', 'analyst_node')  # After the tool is executed -> return to the model to see the result
+        builder.add_edge('finalizer', END)  # After formatting -> end
 
         self.analyst_graph = builder.compile(name='analyst_graph')
 
     def build_main_graph(self):
         def intent_node(state: MainState):
-            """意图识别：确定总目标"""
+            """Intent recognition: determine the overall goal"""
             self.logger.info("Intent Node Invoked")
 
-            # 获取 Case 数据
+            # Get Case data
             case = Case.get_raw_data(rowid=self.param_source_rowid)
 
-            # 用户意图
+            # User intent
             user_intent = self.param_user_input
 
             if not user_intent:
                 user_intent = "None (Auto-Pilot Mode)"
 
-            # 加载system prompt
+            # Load system prompt
             system_prompt_template = self.load_system_prompt_template("Intent_System", lang=PROMPT_LANG)
             system_message = system_prompt_template.format()
 
             human_message = self.load_human_prompt_template("Intent_Human", lang=PROMPT_LANG).format(case=case, user_intent=user_intent)
 
-            # 构建few-shot示例
+            # Construct few-shot examples
             few_shot_examples = [
             ]
 
-            # 构建消息列表
+            # Construct message list
             messages = [
                 system_message,
                 *few_shot_examples,
                 human_message
             ]
 
-            # 运行
+            # Run
             llm_api = LLMAPI()
             llm = llm_api.get_model(tag="fast")
             response: AIMessage = llm.invoke(messages)
@@ -360,9 +360,9 @@ class Playbook(LanggraphPlaybook):
 
         def planner_node(state: MainState):
             """
-            [核心逻辑]
-            查看已有的 findings，决定还需要查什么。
-            一次性生成一批任务。
+            [Core logic]
+            Check existing findings to decide what else to look for.
+            Generate a batch of tasks at once.
             """
             self.logger.info("Planner Node Invoked")
 
@@ -372,13 +372,13 @@ class Playbook(LanggraphPlaybook):
 
             iteration_count = iteration_count + 1
 
-            # 强制退出机制
+            # Forced exit mechanism
             if iteration_count > self.max_iterations:
                 self.logger.info("Max iterations reached, terminating planning.")
                 node_out = {"current_plan": []}
                 return node_out
 
-            # 加载system prompt
+            # Load system prompt
             system_prompt_template = self.load_system_prompt_template("Planner_System", lang=PROMPT_LANG)
 
             system_message = system_prompt_template.format()
@@ -386,7 +386,7 @@ class Playbook(LanggraphPlaybook):
             history_md_list = []
             for record in findings:
                 record: Finding
-                # 调用对象自己的方法，或者在这里自定义格式
+                # Call the object's own method, or customize the format here
                 history_md_list.append(record.to_markdown())
 
             findings_str = "\n".join(history_md_list)
@@ -437,30 +437,30 @@ class Playbook(LanggraphPlaybook):
 
         def continue_to_analysts(state: MainState):
             """
-            条件边逻辑：
-            1. 如果 planner 返回了任务列表 -> 使用 Send API 并行分发给 Subgraph
-            2. 如果 planner 返回空列表 -> 结束，去写报告
+            Conditional edge logic:
+            1. If the planner returns a list of tasks -> use the Send API to distribute them to the Subgraph in parallel
+            2. If the planner returns an empty list -> end and go to write the report
             """
             current_plan = state.current_plan
             case = state.case
             iteration_count = state.iteration_count
             if not current_plan:
-                # 没有任务了，结束
+                # No more tasks, end
                 self.logger.info(f"Round {iteration_count},No more tasks in plan, proceeding to report.")
                 return "report"
 
-            # 有任务，并行分发 (Map)
-            # Send(目标节点名, 传递给该节点的State)
+            # There are tasks, parallel distribution (Map)
+            # Send(target node name, State passed to this node)
             self.logger.info(f"Round {iteration_count},Dispatching {len(current_plan)} tasks to analyst subgraph.")
             return [
                 Send("analyst_subgraph", AnalystState(question=question, case=case))
                 for question in current_plan
             ]
 
-        # --- 封装 Subgraph 调用 ---
+        # --- Encapsulate Subgraph call ---
         def run_analyst_subgraph(state: AnalystState):
             self.logger.info("Running Analyst Subgraph Wrapper")
-            # graph的输出是dict
+            # The output of the graph is dict
             result: dict = self.analyst_graph.invoke(state)
             analyst_state = AnalystState(**result)
             finding = Finding(
@@ -473,7 +473,7 @@ class Playbook(LanggraphPlaybook):
             return node_out
 
         def reporter_node(state: MainState):
-            """生成最终报告"""
+            """Generate final report"""
             self.logger.info("Reporter Node Invoked")
             findings = state.findings
             hunting_objective = state.hunting_objective
@@ -537,29 +537,29 @@ class Playbook(LanggraphPlaybook):
             self.update_playbook("Success", "Threat Hunting Agent Finish.")
             return node_out
 
-        # --- 构建主图 ---
+        # --- Build the main graph ---
         main_builder = StateGraph(MainState)
 
         main_builder.add_node("intent", intent_node)
         main_builder.add_node("planner", planner_node)
-        # 注意：这里注册的是 subgraph wrapper 函数
+        # Note: The subgraph wrapper function is registered here
         main_builder.add_node("analyst_subgraph", run_analyst_subgraph)
         main_builder.add_node("report", reporter_node)
 
-        # 流程：Start -> Intent -> Planner
+        # Process: Start -> Intent -> Planner
         main_builder.add_edge(START, "intent")
         main_builder.add_edge("intent", "planner")
 
-        # 流程：Planner -> (Map: 并行执行多个子图) OR (Report)
+        # Process: Planner -> (Map: execute multiple subgraphs in parallel) OR (Report)
         main_builder.add_conditional_edges(
             "planner",
             continue_to_analysts,
             ["analyst_subgraph", "report"]
         )
 
-        # 流程：所有子图执行完后 -> (Reduce/Gather) -> 自动回到 Planner
-        # LangGraph 的机制是：并行分支全部执行完后，才会进入下一个公共节点。
-        # 既然我们要回 Planner 反思，就把边连回 Planner。
+        # Process: After all subgraphs are executed -> (Reduce/Gather) -> automatically return to Planner
+        # The mechanism of LangGraph is: after all parallel branches are executed, the next common node will be entered.
+        # Since we want to go back to the Planner to reflect, we connect the edge back to the Planner.
         main_builder.add_edge("analyst_subgraph", "planner")
 
         main_builder.add_edge("report", END)
