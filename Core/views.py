@@ -15,8 +15,8 @@ from Lib.log import logger
 
 
 class BaseAuthView(ModelViewSet, UpdateAPIView, DestroyAPIView):
-    queryset = []  # 设置类的queryset
-    serializer_class = AuthTokenSerializer  # 设置类的serializer_class
+    queryset = []
+    serializer_class = AuthTokenSerializer
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -25,7 +25,6 @@ class BaseAuthView(ModelViewSet, UpdateAPIView, DestroyAPIView):
         null_response = {"status": "error", "type": "account", "currentAuthority": "guest",
                          "token": "forguest"}
 
-        # 检查是否为diypassword
         # Get encrypted password and decrypt it
         username = request.data.get('username')
         password = request.data.get('password')
@@ -36,13 +35,13 @@ class BaseAuthView(ModelViewSet, UpdateAPIView, DestroyAPIView):
                 token, created = Token.objects.get_or_create(user=serializer.validated_data['user'])
                 time_now = datetime.datetime.now()
                 if created or token.created < time_now - datetime.timedelta(minutes=EXPIRE_MINUTES):
-                    # 更新创建时间,保持token有效
+                    # Update creation time to keep token valid
                     token.delete()
                     token = Token.objects.create(user=serializer.validated_data['user'])
                     token.created = time_now
                     token.save()
                 null_response['status'] = 'ok'
-                null_response['currentAuthority'] = 'admin'  # 当前为单用户模式,默认为admin
+                null_response['currentAuthority'] = 'admin'  # Currently in single-user mode, default is admin
                 null_response['token'] = token.key
                 context = data_return(201, null_response, BASEAUTH_MSG_ZH.get(201), BASEAUTH_MSG_EN.get(201))
                 return Response(context)
@@ -57,7 +56,7 @@ class BaseAuthView(ModelViewSet, UpdateAPIView, DestroyAPIView):
 
 class CurrentUserView(BaseView):
     def list(self, request, **kwargs):
-        """查询数据库中的host信息"""
+        """Query host information in the database"""
         user = request.user
         user_info = CurrentUser.list(user)
         context = data_return(301, user_info, BASEAUTH_MSG_ZH.get(301), BASEAUTH_MSG_EN.get(301))

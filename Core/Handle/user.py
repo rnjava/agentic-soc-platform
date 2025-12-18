@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-# @File  : currentuser.py
-# @Date  : 2021/2/25
-# @Desc  :
 from django.contrib.auth.models import User
 
 from Core.serializers import UserAPISerializer
@@ -28,7 +24,6 @@ class UserAPI(object):
             return True
         except User.DoesNotExist:
             try:
-                # 创建普通用户
                 user = User.objects.create_user(username=username, password=password)
                 user.save()
                 return True

@@ -22,10 +22,10 @@ websocket_urlpatterns = [
 ]
 
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),  # Django 的 WSGI 应用处理 HTTP 请求
+    "http": get_asgi_application(),  # Django's WSGI application handles HTTP requests
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            websocket_urlpatterns  # WebSocket 处理
+            websocket_urlpatterns  # WebSocket handling
         )
     ),
 })

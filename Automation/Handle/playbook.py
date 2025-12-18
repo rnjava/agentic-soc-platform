@@ -8,19 +8,17 @@ from Lib.baseplaybook import BasePlaybook
 from Lib.configs import Playbook_MSG_ZH, Playbook_MSG_EN
 from Lib.log import logger
 from Lib.xcache import Xcache
-from PLUGINS.SIRP.nocolyapi import OptionSet
-from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook
 
 
 class Playbook(object):
-    """任务添加器"""
+    """Task Adder"""
 
     def __init__(self):
         pass
 
     @staticmethod
     def create(playbook=None, params=None, name=None, type=None):
-        # 获取模块实例
+        # Get module instance
         if name is not None and type is not None:
             module_config = Xcache.get_module_config_by_name_and_type(type, name)
             if module_config is None:
@@ -64,11 +62,9 @@ class Playbook(object):
                 context = data_return(301, {}, Playbook_MSG_ZH.get(301), Playbook_MSG_EN.get(301))
                 return context
 
-
-
     @staticmethod
     def get_module_intent(modulename, module_files_dir):
-        if modulename == "__init__" or modulename == "__pycache__" or modulename == '':  # __init__.py的特殊处理
+        if modulename == "__init__" or modulename == "__pycache__" or modulename == '':  # Special handling for __init__.py
             return None
         try:
             class_intent = importlib.import_module(f'{module_files_dir}.{modulename}')
@@ -90,7 +86,7 @@ class Playbook(object):
 
         try:
             one_module_config = {
-                "TYPE": module_intent.TYPE,  # 处理器
+                "TYPE": module_intent.TYPE,  # Processor
                 "NAME": module_intent.NAME,
                 "load_path": f'{module_files_dir}.{modulename}',
             }
@@ -102,7 +98,7 @@ class Playbook(object):
     @staticmethod
     def load_all_module_config():
         all_modules_config = []
-        # post 模块
+        # post module
         module_count = 0
         module_filenames = os.listdir(os.path.join(settings.BASE_DIR, 'PLAYBOOKS'))
         for module_filename in module_filenames:
@@ -114,4 +110,4 @@ class Playbook(object):
 
         Xcache.update_module_configs(all_modules_config)
 
-        logger.info(f"内置剧本加载完成,加载{module_count}个剧本")
+        logger.info(f"Built-in playbooks loaded, loaded {module_count} playbooks")

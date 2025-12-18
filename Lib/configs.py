@@ -24,7 +24,7 @@ CODE_MSG_ZH = {
     503: '服务不可用，服务器暂时过载或维护',
     504: '网关超时',
 
-    # 自定义的错误码
+    # Custom error code
     505: "MSFRPC调用失败",
 }
 
@@ -46,7 +46,7 @@ CODE_MSG_EN = {
     503: "The service is not available. The server is temporarily overloaded or maintained. ",
     504: "Gateway timed out. ",
 
-    # 自定义的错误码
+    # Custom error code
     505: "MSFRPC call failed",
 }
 
@@ -101,10 +101,10 @@ Empty_MSG = {
     306: "",
 }
 
-# token超时时间
+# token timeout
 EXPIRE_MINUTES = 24 * 60
 
-# 静态文件目录
+# Static file directory
 STATIC_STORE_PATH = "STATICFILES/STATIC/"
 
 # lang

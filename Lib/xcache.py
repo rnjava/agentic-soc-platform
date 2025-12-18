@@ -52,7 +52,7 @@ class Xcache(object):
 
     @staticmethod
     def create_module_task(req):
-        """任务队列"""
+        """Task Queue"""
         key = f"{Xcache.XCACHE_MODULES_TASK_LIST}_{req.get('uuid')}"
         cache.set(key, req, None)
         return True

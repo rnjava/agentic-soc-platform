@@ -5,19 +5,18 @@ from django.db import models
 
 # Create your models here.
 
-
 class DiyListField(models.TextField):
-    """数据库中用来存储list类型字段"""
+    """Used to store list type fields in the database"""
     description = "Stores a python list"
 
     def __init__(self, *args, **kwargs):
         super(DiyListField, self).__init__(*args, **kwargs)
 
-    def get_prep_value(self, value):  # 将python对象转为查询值
+    def get_prep_value(self, value):
         if value is None:
             return value
 
-        return str(value)  # use str(value) in Python 3
+        return str(value)
 
     @staticmethod
     def from_db_value(value, expression, connection):
@@ -25,7 +24,6 @@ class DiyListField(models.TextField):
             value = []
         if isinstance(value, list):
             return value
-        # 直接将字符串转换成python内置的list
         try:
             return ast.literal_eval(value)
         except Exception as E:
@@ -40,24 +38,23 @@ class DiyListField(models.TextField):
 
 
 class DiyDictField(models.TextField):
-    """数据库中用来存储dict类型字段"""
+    """Used to store dict type fields in the database"""
     description = "Stores a python dict"
 
     def __init__(self, *args, **kwargs):
         super(DiyDictField, self).__init__(*args, **kwargs)
 
-    def get_prep_value(self, value):  # 将python对象转为查询值
+    def get_prep_value(self, value):
         if value is None:
             return value
 
-        return str(value)  # use str(value) in Python 3
+        return str(value)
 
     def from_db_value(self, value, expression, connection):
         if not value:
             value = []
         if isinstance(value, dict):
             return value
-        # 直接将字符串转换成python内置的list
         try:
             return ast.literal_eval(value)
         except Exception as E:
