@@ -14,10 +14,11 @@ from Lib.baseplaybook import BasePlaybook
 from Lib.engine import Engine
 from Lib.log import logger
 from Lib.xcache import Xcache
-from PLUGINS.Embeddings.embeddings_qdrant import EmbeddingsAPI
+from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
 from PLUGINS.Redis.CONFIG import REDIS_STREAM_STORE_DAYS
 from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
-from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Knowledge
+from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Knowledge, KnowledgeAction
+from PLUGINS.mem0.mem_zero import mem_zero_singleton
 
 ASP_REST_API_TOKEN = "nocoly_token_for_playbook"
 
@@ -166,7 +167,6 @@ class MainMonitor(object):
     def subscribe_knowledge_action():
         records = Knowledge.get_undone_actions()
         if records:
-            embedding_api = EmbeddingsAPI()
             for one_record in records:
                 action = one_record.get("action")
                 using = one_record.get("using")
@@ -176,14 +176,34 @@ class MainMonitor(object):
 
                 payload_content = f"# {title}\n\n{body}"
 
-                if action == "Store":
-                    embedding_api.add_document(Knowledge.COLLECTION_NAME, row_id, payload_content, {"rowId": row_id})
-                    action = "Done"
+                if action == KnowledgeAction.STORE:
+                    logger.info(f"Knowledge storing,rowId: {row_id}")
+                    try:
+                        result = embedding_api_singleton_qdrant.add_document(Knowledge.COLLECTION_NAME, row_id, payload_content, {"rowId": row_id})
+                    except Exception as E:
+                        logger.exception(E)
+
+                    try:
+                        result = mem_zero_singleton.add_mem(user_id=Knowledge.COLLECTION_NAME, run_id=row_id, content=payload_content, metadata={"rowId": row_id})
+                    except Exception as E:
+                        logger.exception(E)
+
+                    action = KnowledgeAction.DONE
                     using = 1
                     logger.info(f"Knowledge stored,rowId: {row_id}")
-                elif action == "Remove":
-                    embedding_api.delete_document(Knowledge.COLLECTION_NAME, row_id)
-                    action = "Done"
+                elif action == KnowledgeAction.REMOVE:
+                    logger.info(f"Knowledge removing,rowId: {row_id}")
+                    try:
+                        result = embedding_api_singleton_qdrant.delete_document(Knowledge.COLLECTION_NAME, row_id)
+                    except Exception as E:
+                        logger.exception(E)
+
+                    try:
+                        result = mem_zero_singleton.delete_mem(user_id=Knowledge.COLLECTION_NAME, run_id=row_id)
+                    except Exception as E:
+                        logger.exception(E)
+
+                    action = KnowledgeAction.DONE
                     using = 0
                     logger.info(f"Knowledge removed,rowId: {row_id}")
                 else:

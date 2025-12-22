@@ -171,13 +171,20 @@ cython_debug/
 CONFIG.py
 
 Test/*
-!Test/.gitkeep
 
 Docker/log/*
 !Docker/log/.gitkeep
+
+Docker/huggingface/bge-reranker-v2-m3/*
+!Docker/huggingface/bge-reranker-v2-m3/.gitkeep
+
+Docker/huggingface/bm25/*
+!Docker/huggingface/bm25/.gitkeep
+
 
 Docker/mcp_uuid
 Docker/db_chroma/*
 PLAYBOOKS/Debug_*
 DATA/Debug_*/
 PLUGINS/Embeddings/db/*
+

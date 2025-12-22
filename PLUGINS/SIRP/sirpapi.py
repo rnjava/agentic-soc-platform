@@ -7,7 +7,7 @@ import requests
 
 from Lib.api import string_to_timestamp, get_current_time_str
 from Lib.log import logger
-from PLUGINS.Embeddings.embeddings_qdrant import EmbeddingsAPI
+from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
 from PLUGINS.SIRP.CONFIG import SIRP_NOTICE_WEBHOOK
 from PLUGINS.SIRP.grouprule import GroupRule
 from PLUGINS.SIRP.nocolyapi import WorksheetRow, OptionSet
@@ -187,7 +187,6 @@ class Alert(object):
 
     @staticmethod
     def embeddings_alert(row_id: str, alert: InputAlert):
-        embeddings_api = EmbeddingsAPI()
         metadata = {}
         for key in alert:
             if isinstance(alert[key], str):
@@ -195,7 +194,7 @@ class Alert(object):
             else:
                 metadata[key] = json.dumps(alert[key])  # Truncate long text to avoid exceeding the limit
 
-        embeddings_api.add_document(
+        embedding_api_singleton_qdrant.add_document(
             collection_name="alert",
             ids=row_id,
             page_content=alert["description"],
@@ -204,8 +203,7 @@ class Alert(object):
 
     @staticmethod
     def search_alerts(query: str, k: int):
-        embeddings_api = EmbeddingsAPI()
-        result = embeddings_api.search_documents(collection_name="alert", query=query, k=k)
+        result = embedding_api_singleton_qdrant.search_documents(collection_name="alert", query=query, k=k)
         return result
 
 
@@ -405,7 +403,12 @@ class Playbook(object):
         return result
 
 
-KnowledgeAction = Literal["Store", "Remove", "Done"]
+class KnowledgeAction(StrEnum):
+    STORE = 'Store'
+    REMOVE = 'Remove'
+    DONE = 'Done'
+
+
 KnowledgeUsing = Literal[0, 1]
 
 
