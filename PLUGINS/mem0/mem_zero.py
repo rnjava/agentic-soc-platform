@@ -1,3 +1,7 @@
+import os
+
+os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
+
 from mem0 import Memory
 
 from PLUGINS.Embeddings.CONFIG import EMBEDDINGS_SIZE
@@ -20,17 +24,22 @@ class MemZero(object):
         self.vector_store = Qdrant.get_client()
 
         config = {
+            "reranker": {
+                "provider": "huggingface",
+                "config": {
+                    "model": "BAAI/bge-reranker-v2-m3",
+                    # "device": "cuda",
+                    "device": "cpu"
+                }
+            },
             # "reranker": {
             #     "provider": "llm_reranker",
             #     "config": {
-            #         "llm": {
-            #             "provider": "openai",
-            #             "config": {
-            #                 "model": "qwen3-rerank",
-            #                 # "api_key": "sk-XXX",
-            #                 # "openai_base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
-            #             }
-            #         }
+            #         "provider": "ollama",
+            #         "model": "qwen3:30b-a3b",
+            #         "ollama_base_url": "http://admin:passwordforollama@192.168.241.128:11434",
+            #         "api_key": "ollama",
+            #
             #     }
             # },
             "graph_store": {
@@ -65,21 +74,32 @@ class MemZero(object):
 
         }
 
-        memory = Memory.from_config(config)
+        self.memory = Memory.from_config(config)
+        print("MemZero initialized.")
 
+    def demo(self):
         conversation = [
-            {"role": "user", "content": "chengyu met panqi at GraphConf 2025 in San Francisco."},
-            {"role": "assistant", "content": "Great! Logging that connection."},
+            {"role": "user", "content": "10.198.125.16是安全部门的扫描器,可能会产生NDR告警,直接忽略"},
+            {"role": "user", "content": "test@gmail.com是钓鱼模拟邮箱,如果用户上报的钓鱼邮件是这个邮箱,直接降低等级"},
         ]
 
-        memory.add(conversation, user_id="demo-user")
-
-        results = memory.search(
-            "Who did Alice meet at GraphConf?",
+        result_add = self.memory.add(conversation, user_id="demo-user")
+        print(result_add)
+        results = self.memory.search(
+            "test@gmail.com需要安全部门封禁吗?",
             user_id="demo-user",
             limit=3,
             rerank=True,
         )
-
         for hit in results["results"]:
-            print(hit["memory"])
+            print(hit)
+
+    def delete(self):
+        result_delete = self.memory.delete_all(user_id="demo-user")
+        print(result_delete)
+
+
+if __name__ == "__main__":
+    mem0 = MemZero()
+    mem0.demo()
+    # mem0.delete()
