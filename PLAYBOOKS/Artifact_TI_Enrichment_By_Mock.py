@@ -35,7 +35,7 @@ class Playbook(BasePlaybook):
 
 
 if __name__ == "__main__":
-    params_debug = {'rowid': 'a966036e-b29e-4449-be48-23293bacac5d', 'worksheet': 'Artifact'}
+    params_debug = {'source_rowid': 'a966036e-b29e-4449-be48-23293bacac5d', 'source_worksheet': 'Artifact'}
     module = Playbook()
     module._params = params_debug
     module.run()

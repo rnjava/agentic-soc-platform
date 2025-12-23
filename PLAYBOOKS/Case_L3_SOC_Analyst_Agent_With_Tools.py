@@ -1,10 +1,11 @@
 import json
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
 from langchain_core.messages import HumanMessage
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field, ConfigDict
 
 from AGENTS.knowledge_agent import KnowledgeAgent
@@ -12,8 +13,6 @@ from Lib.baseplaybook import LanggraphPlaybook
 from Lib.llmapi import AgentState
 from PLUGINS.LLM.llmapi import LLMAPI
 from PLUGINS.SIRP.sirpapi import Case
-
-tools = [KnowledgeAgent.search]
 
 
 class ConfidenceLevel(str, Enum):
@@ -34,7 +33,6 @@ class Severity(str, Enum):
 
 class AnalyzeResult(BaseModel):
     """Structure for extracting user information from text"""
-    # config
     model_config = ConfigDict(use_enum_values=True)
 
     original_severity: Severity = Field(description="Original alert severity")
@@ -50,53 +48,54 @@ class Playbook(LanggraphPlaybook):
     NAME = "L3 SOC Analyst Agent"
 
     def __init__(self):
-        super().__init__()  # do not delete this code
+        super().__init__()
         self.init()
 
     def init(self):
+        # 初始化工具
+        tools = [KnowledgeAgent.search, AnalyzeResult]
+        tool_node = ToolNode([KnowledgeAgent.search])
+
         def preprocess_node(state: AgentState):
-            """Preprocess data"""
             case = Case.get_raw_data(self.param_source_rowid)
             state.case = case
-            return state
+            # 将Case信息作为初始消息放入
+            initial_content = f"Case Data: {json.dumps(case)}"
+            return {"messages": [HumanMessage(content=initial_content)]}
 
-        # Define node
         def analyze_node(state: AgentState):
-            """AI analyzes Case data"""
-
-            # Load system prompt
             system_prompt_template = self.load_system_prompt_template("L3_SOC_Analyst")
-
             system_message = system_prompt_template.format()
 
-            # Construct few-shot examples
-            few_shot_examples = [
-            ]
-
-            # Run
             llm_api = LLMAPI()
+            # 获取支持工具调用的模型
+            llm = llm_api.get_model(tag=["structured_output", "function_calling"])
+            llm_with_tools = llm.bind_tools(tools)
 
-            llm = llm_api.get_model(tag="structured_output")
+            messages = [system_message] + state.messages
+            response = llm_with_tools.invoke(messages)
+            return {"messages": [response]}
 
-            # Construct message list
-            messages = [
-                system_message,
-                *few_shot_examples,
-                HumanMessage(content=json.dumps(state.case))
-            ]
-            llm = llm.with_structured_output(AnalyzeResult)
-            response: AnalyzeResult = llm.invoke(messages)
-            state.analyze_result = response.model_dump()
+        def should_continue(state: AgentState) -> Literal["tools", "output", END]:
+            last_message = state.messages[-1]
+            if not last_message.tool_calls:
+                return END
 
-            # response = llm.invoke(messages)
-            # response = LLMAPI.extract_think(response)  # Temporary solution for langchain chatollama bug
-            # state.analyze_result = json.loads(response.content)
-            return state
+            # 检查是否调用了最终分析工具
+            for tool_call in last_message.tool_calls:
+                if tool_call["name"] == "AnalyzeResult":
+                    return "output"
+            return "tools"
 
         def output_node(state: AgentState):
-            """Process analysis results"""
+            last_message = state.messages[-1]
 
-            analyze_result: AnalyzeResult = AnalyzeResult(**state.analyze_result)
+            # 从 tool_calls 中提取 AnalyzeResult 的参数
+            analyze_call = next(
+                tc for tc in last_message.tool_calls if tc["name"] == "AnalyzeResult"
+            )
+            result_data = analyze_call["args"]
+            analyze_result = AnalyzeResult(**result_data)
 
             case_field = [
                 {"id": "severity", "value": analyze_result.new_severity},
@@ -109,19 +108,33 @@ class Playbook(LanggraphPlaybook):
 
             self.send_notice("Case_L3_SOC_Analyst_Agent Finish", f"rowid:{self.param_source_rowid}")
             self.update_playbook("Success", "Get suggestion by ai agent completed.")
-            return state
+            return {"analyze_result": result_data}
 
-        # Compile graph
+        # 构建图
         workflow = StateGraph(AgentState)
 
         workflow.add_node("preprocess_node", preprocess_node)
         workflow.add_node("analyze_node", analyze_node)
+        workflow.add_node("tools", tool_node)
         workflow.add_node("output_node", output_node)
 
-        workflow.set_entry_point("preprocess_node")
+        workflow.add_edge(START, "preprocess_node")
         workflow.add_edge("preprocess_node", "analyze_node")
-        workflow.add_edge("analyze_node", "output_node")
-        workflow.set_finish_point("output_node")
+
+        # 条件路由
+        workflow.add_conditional_edges(
+            "analyze_node",
+            should_continue,
+            {
+                "tools": "tools",
+                "output": "output_node",
+                END: END
+            }
+        )
+
+        workflow.add_edge("tools", "analyze_node")
+        workflow.add_edge("output_node", END)
+
         self.agent_state = AgentState()
         self.graph: CompiledStateGraph = workflow.compile(checkpointer=self.get_checkpointer())
         return True
@@ -132,7 +145,7 @@ class Playbook(LanggraphPlaybook):
 
 
 if __name__ == "__main__":
-    params_debug = {'source_rowid': '6635d1e1-406a-4dcb-9b07-797f584db207', 'source_worksheet': 'case'}
+    params_debug = {'source_rowid': 'f0189cf8-44af-4c46-90c7-988a159bb34c', 'source_worksheet': 'case'}
     module = Playbook()
     module._params = params_debug
     module.run()

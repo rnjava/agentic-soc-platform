@@ -46,7 +46,8 @@ class KnowledgeAgent(object):
                 memory = one_record.get("memory", "")
                 if rerank_score >= threshold:
                     result_all.append(memory)
-
+        print(query)
+        print(result_all)
         return json.dumps(result_all, ensure_ascii=False)
 
 # if __name__ == "__main__":

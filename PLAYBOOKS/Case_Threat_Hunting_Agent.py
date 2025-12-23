@@ -579,8 +579,8 @@ if __name__ == "__main__":
     django.setup()
 
     params_debug = {
-        'rowid': '47da1d00-c9bf-4b5f-8ab8-8877ec292b98',
-        'worksheet': 'case',
+        'source_rowid': '47da1d00-c9bf-4b5f-8ab8-8877ec292b98',
+        'source_worksheet': 'case',
         "user_input": "Has the host in the case been infected",
         "playbook_rowid": "9fb4a3e1-6ae7-47b2-9b15-95264272dff5"
     }
