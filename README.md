@@ -23,9 +23,7 @@
 </p>
 
 
-**Agentic SOC Platform** is a powerful, flexible, and open-source automated security operations platform. It integrates
-AI Agent capabilities with automation orchestration, supporting mainstream SIEM/SOAR scenarios to help enterprises
-efficiently build intelligent security operations systems.
+**Agentic SOC Platform** A powerful, flexible, open-source, and agent-centric automated security operations platform.
 
 ## Core Features
 
