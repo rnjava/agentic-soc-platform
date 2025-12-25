@@ -7,13 +7,10 @@ from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from pydantic import BaseModel, Field, ConfigDict
 
-from AGENTS.knowledge_agent import KnowledgeAgent
 from Lib.baseplaybook import LanggraphPlaybook
 from Lib.llmapi import AgentState
 from PLUGINS.LLM.llmapi import LLMAPI
 from PLUGINS.SIRP.sirpapi import Case
-
-tools = [KnowledgeAgent.search]
 
 
 class ConfidenceLevel(str, Enum):

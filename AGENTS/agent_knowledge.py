@@ -13,7 +13,7 @@ if MEM_ZERO_USE:
 from langchain_core.tools import tool
 
 
-class KnowledgeAgent(object):
+class AgentKnowledge(object):
 
     @staticmethod
     @tool("internal_knowledge_base_search")

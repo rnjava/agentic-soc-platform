@@ -6,7 +6,7 @@ from langchain_core.tools import tool
 from PLUGINS.Mock.TI import TI
 
 
-class TIAgent(object):
+class AgentTI(object):
 
     @staticmethod
     @tool("ti_lookup")

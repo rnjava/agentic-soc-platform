@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from Lib.baseplaybook import LanggraphPlaybook
 from Lib.configs import DATA_DIR
+from Lib.llmapi import load_system_prompt_template
 from PLUGINS.LLM.llmapi import LLMAPI
 from PLUGINS.Mock.SIEM_Splunk import splunk_search_tool
 
@@ -27,7 +28,7 @@ class AgentState(BaseModel):
 
 
 # Main class for the SIEM Agent, serving as the public interface
-class SIEMAgent:
+class AgentSIEM:
     def search(
             self,
             natural_query: Annotated[str, "A natural language query for SIEM. (e.g., 'Find connections from 10.10.10.10 to any malicious IP')"]
@@ -110,23 +111,20 @@ def create_siem_agent(
 a simpler, stateless agent created using the create_agent factory function from langchain.agents.
     """
     # Load schemas and prompt template
-    schema_path = os.path.join(DATA_DIR, "siem_agent", "splunk_datamodels.yml")
+    schema_path = os.path.join(DATA_DIR, "Agent_SIEM", "splunk_datamodels.yml")
     with open(schema_path, 'r', encoding='utf-8') as f:
         splunk_schemas = yaml.safe_load(f)
-
-    prompt_path = os.path.join(DATA_DIR, "siem_agent", "system_prompt.md")
-    with open(prompt_path, 'r', encoding='utf-8') as f:
-        system_prompt_template = f.read()
-
     schema_json = json.dumps(splunk_schemas, indent=2)
-    system_prompt = system_prompt_template.format(splunk_schema_json=schema_json)
+
+    prompt_path = os.path.join(DATA_DIR, "Agent_SIEM", "system_prompt.md")
+    system_prompt_template = load_system_prompt_template(prompt_path)
 
     llm_api = LLMAPI()
     llm = llm_api.get_model(tag=["fast", "function_calling"])
 
     tools = [splunk_search_tool]
 
-    agent = create_agent(llm, tools, system_prompt=system_prompt)
+    agent = create_agent(llm, tools, system_prompt=system_prompt_template.format(splunk_schema_json=schema_json))
 
     response = agent.invoke({"messages": [HumanMessage(content=query)]})
 
@@ -135,13 +133,13 @@ a simpler, stateless agent created using the create_agent factory function from 
 
 # Test code
 if __name__ == "__main__":
-    # siem_agent = SIEMAgent()
+    # Agent_SIEM = SIEMAgent()
     #
     # # Example query that requires the agent to formulate an SPL query
     # test_query = "Have there been any suspicious logins for the user 'admin' on Windows machines?"
     #
     # print(f"--- Using GraphAgent for Query: '{test_query}' ---")
-    # result = siem_agent.search(test_query)
+    # result = Agent_SIEM.search(test_query)
     # print("\n--- Final Answer ---")
     # print(result)
     #
@@ -150,7 +148,7 @@ if __name__ == "__main__":
     # # A more complex query
     # test_query_2 = "check for connections from the victim host 10.67.3.130 to any known malicious IPs, like 45.33.22.11"
     # print(f"--- Using GraphAgent for Query: '{test_query_2}' ---")
-    # result_2 = siem_agent.search(test_query_2)
+    # result_2 = Agent_SIEM.search(test_query_2)
     # print("\n--- Final Answer ---")
     # print(result_2)
 

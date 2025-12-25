@@ -10,9 +10,9 @@ from langgraph.prebuilt import ToolNode
 from langgraph.types import Send
 from pydantic import BaseModel, Field, ConfigDict
 
-from AGENTS.cmdb_agent import CMDBAgent
-from AGENTS.siem_agent import SIEMAgent
-from AGENTS.ti_agent import TIAgent
+from AGENTS.agent_cmdb import AgentCMDB
+from AGENTS.agent_siem import AgentSIEM
+from AGENTS.agent_ti import AgentTI
 from Lib.api import get_current_time_str
 from Lib.baseplaybook import LanggraphPlaybook
 from PLUGINS.LLM.llmapi import LLMAPI
@@ -44,7 +44,8 @@ class AnalystOutput(BaseModel):
 # Define the structured output of the Planner
 class HuntingPlan(BaseModel):
     # Allows generating multiple tasks at once, or an empty list to indicate the end
-    current_plan: List[str] = Field(description="A list of specific questions to be investigated in parallel next. Returns an empty list if there are no more questions.")
+    current_plan: List[str] = Field(
+        description="A list of specific questions to be investigated in parallel next. Returns an empty list if there are no more questions.")
     rationale: str = Field(description="The reason for making this plan")
 
 
@@ -210,7 +211,7 @@ class Playbook(LanggraphPlaybook):
 
             llm_api = LLMAPI()
             base_llm = llm_api.get_model(tag=["powerful", "function_calling"])
-            llm_with_tools = base_llm.bind_tools([SIEMAgent.search, CMDBAgent.cmdb_query_asset, TIAgent.lookup])
+            llm_with_tools = base_llm.bind_tools([AgentSIEM.search, AgentCMDB.cmdb_query_asset, AgentTI.lookup])
             response: AIMessage = llm_with_tools.invoke(messages)
 
             # update record
@@ -223,7 +224,7 @@ class Playbook(LanggraphPlaybook):
             return {"messages": [response]}
 
         # Tool node
-        tool_node = ToolNode([SIEMAgent.search, CMDBAgent.cmdb_query_asset, TIAgent.lookup])
+        tool_node = ToolNode([AgentSIEM.search, AgentCMDB.cmdb_query_asset, AgentTI.lookup])
 
         # Result generation node: when there is no tool call, it is responsible for converting the last message into a structured output
         def final_answer_node(state: AnalystState):

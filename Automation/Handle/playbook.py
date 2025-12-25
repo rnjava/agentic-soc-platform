@@ -23,7 +23,7 @@ class Playbook(object):
             module_config = Xcache.get_module_config_by_name_and_type(type, name)
             if module_config is None:
                 # try again to load all module config
-                Playbook.load_all_module_config()
+                Playbook.load_all_playbook_config()
                 module_config = Xcache.get_module_config_by_name_and_type(type, name)
             if module_config is None:
                 context = data_return(305, {"status": "Failed", "job_id": None}, Playbook_MSG_ZH.get(305), Playbook_MSG_EN.get(305))
@@ -63,7 +63,7 @@ class Playbook(object):
                 return context
 
     @staticmethod
-    def get_module_intent(modulename, module_files_dir):
+    def get_playbook_intent(modulename, module_files_dir):
         if modulename == "__init__" or modulename == "__pycache__" or modulename == '':  # Special handling for __init__.py
             return None
         try:
@@ -75,8 +75,8 @@ class Playbook(object):
             return None
 
     @staticmethod
-    def gen_module_config(modulename, module_files_dir="PLAYBOOKS"):
-        module_intent = Playbook.get_module_intent(modulename, module_files_dir)
+    def gen_playbook_config(modulename, module_files_dir="PLAYBOOKS"):
+        module_intent = Playbook.get_playbook_intent(modulename, module_files_dir)
 
         if module_intent is None:
             return None
@@ -96,14 +96,14 @@ class Playbook(object):
             return None
 
     @staticmethod
-    def load_all_module_config():
+    def load_all_playbook_config():
         all_modules_config = []
         # post module
         module_count = 0
         module_filenames = os.listdir(os.path.join(settings.BASE_DIR, 'PLAYBOOKS'))
         for module_filename in module_filenames:
             module_name = module_filename.split(".")[0]
-            one_module_config = Playbook.gen_module_config(module_name, 'PLAYBOOKS')
+            one_module_config = Playbook.gen_playbook_config(module_name, 'PLAYBOOKS')
             if one_module_config is not None:
                 all_modules_config.append(one_module_config)
                 module_count += 1

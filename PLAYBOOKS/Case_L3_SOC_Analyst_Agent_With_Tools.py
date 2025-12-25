@@ -8,7 +8,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field, ConfigDict
 
-from AGENTS.knowledge_agent import KnowledgeAgent
+from AGENTS.agent_knowledge import AgentKnowledge
 from Lib.baseplaybook import LanggraphPlaybook
 from Lib.llmapi import AgentState
 from PLUGINS.LLM.llmapi import LLMAPI
@@ -78,7 +78,7 @@ NODE_TOOLS = "tools"
 NODE_OUTPUT = "output_node"
 
 FINAL_TOOL_NAME = AnalyzeResult.__name__
-SEARCH_TOOL = KnowledgeAgent.search
+SEARCH_TOOL = AgentKnowledge.search
 
 
 class Playbook(LanggraphPlaybook):
