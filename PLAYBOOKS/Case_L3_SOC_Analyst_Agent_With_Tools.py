@@ -78,7 +78,7 @@ NODE_TOOLS = "tools"
 NODE_OUTPUT = "output_node"
 
 FINAL_TOOL_NAME = AnalyzeResult.__name__
-SEARCH_TOOL = AgentKnowledge.search
+SEARCH_TOOL = AgentKnowledge.internal_knowledge_base_search
 
 
 class Playbook(LanggraphPlaybook):

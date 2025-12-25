@@ -10,14 +10,12 @@ from PLUGINS.SIRP.sirpapi import Knowledge
 
 if MEM_ZERO_USE:
     from PLUGINS.Mem0.mem_zero import mem_zero_singleton
-from langchain_core.tools import tool
 
 
 class AgentKnowledge(object):
 
     @staticmethod
-    @tool("internal_knowledge_base_search")
-    def search(
+    def internal_knowledge_base_search(
             query: Annotated[
                 str, "The search query, can be an entity (IP, Email, Domain) or a business concept/rule description or "
                      "anything you want to know from internal knowledge base."]

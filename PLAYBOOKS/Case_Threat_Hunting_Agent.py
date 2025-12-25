@@ -211,7 +211,7 @@ class Playbook(LanggraphPlaybook):
 
             llm_api = LLMAPI()
             base_llm = llm_api.get_model(tag=["powerful", "function_calling"])
-            llm_with_tools = base_llm.bind_tools([AgentSIEM.search, AgentCMDB.cmdb_query_asset, AgentTI.lookup])
+            llm_with_tools = base_llm.bind_tools([AgentSIEM.siem_search_by_natural_language, AgentCMDB.cmdb_query_asset, AgentTI.threat_intelligence_lookup])
             response: AIMessage = llm_with_tools.invoke(messages)
 
             # update record
@@ -224,7 +224,7 @@ class Playbook(LanggraphPlaybook):
             return {"messages": [response]}
 
         # Tool node
-        tool_node = ToolNode([AgentSIEM.search, AgentCMDB.cmdb_query_asset, AgentTI.lookup])
+        tool_node = ToolNode([AgentSIEM.siem_search_by_natural_language, AgentCMDB.cmdb_query_asset, AgentTI.threat_intelligence_lookup])
 
         # Result generation node: when there is no tool call, it is responsible for converting the last message into a structured output
         def final_answer_node(state: AnalystState):

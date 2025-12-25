@@ -30,8 +30,8 @@ class AgentState(BaseModel):
 
 # Main class for the SIEM Agent, serving as the public interface
 class AgentSIEM:
-    def search(
-            self,
+    @staticmethod
+    def siem_search_by_natural_language(
             natural_query: Annotated[str, "A natural language query for SIEM. (e.g., 'Find connections from 10.10.10.10 to any malicious IP')"]
     ) -> Annotated[str, "A summary of the findings from the SIEM search."]:
         """

@@ -87,7 +87,7 @@ class MemZero(object):
         """
         result = {"results": [{"id": "...", "memory": "...", "score": 0.8, ...}],"relations":[...]}
         """
-        result = self.memory.search(
+        result = self.memory.siem_search_by_natural_language(
             query,
             user_id=user_id,
             limit=limit,
