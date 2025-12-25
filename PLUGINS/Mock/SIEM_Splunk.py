@@ -317,7 +317,9 @@ This is your knowledge base of the available Splunk indexes and sourcetypes. Whe
                        e.g., 'index=pan_logs dest_ip="45.33.22.11" | stats count by src_ip'
         """
         print(f"[🔮 Splunk Mock] Generating logs for SPL query: '{spl_query}'")
-
+        if spl_query is None or spl_query.strip() == "":
+            print("   [⚠️ Warning] Empty SPL query provided. Returning no logs.")
+            return []
         # 1. Prepare context and Prompt
         ioc_context = json.dumps(SplunkMock.COMPROMISED_IOCS, indent=2)
         splunk_schema_context = json.dumps(SplunkMock.SPLUNK_SCHEMAS, indent=2)

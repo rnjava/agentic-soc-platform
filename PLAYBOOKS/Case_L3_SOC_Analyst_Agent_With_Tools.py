@@ -1,18 +1,23 @@
 import json
 from enum import Enum
-from typing import Any
+from typing import Annotated, Any, Dict, List
 
 from langchain_core.messages import HumanMessage
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import StateGraph, START, END, add_messages
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field, ConfigDict
 
 from AGENTS.agent_knowledge import AgentKnowledge
 from Lib.baseplaybook import LanggraphPlaybook
-from Lib.llmapi import AgentState
 from PLUGINS.LLM.llmapi import LLMAPI
 from PLUGINS.SIRP.sirpapi import Case
+
+
+class AgentState(BaseModel):
+    messages: Annotated[List[Any], add_messages] = []
+    case: Dict[str, Any] = {}
+    loop_count: int = 0
 
 
 class ConfidenceLevel(str, Enum):
@@ -62,13 +67,13 @@ class AnalyzeResult(BaseModel):
         default=None,
         description="详细推理过程.需包含识别到的新证据、新旧告警关联逻辑以及搜索工具返回的情报如何辅助了判断."
     )
-    current_attack_stage: str | dict[str, Any] | None = Field(
+    current_attack_stage: str | None = Field(
         default=None,
-        description="参考 MITRE ATT&CK 战术名称(如：'T1059 - Command and Control', 'Lateral Movement')."
+        description="参考 MITRE ATT&CK 战术名称,必须是字符串(如：'T1059 - Command and Control', 'Lateral Movement')."
     )
-    recommended_actions: str | dict[str, Any] | None = Field(
+    recommended_actions: str | None = Field(
         default=None,
-        description="具体且可执行的应急响应建议(如：'Isolate host 10.1.1.5', 'Reset user password')."
+        description="具体且可执行的应急响应建议,必须是字符串(如：'Isolate host 10.1.1.5', 'Reset user password')."
     )
 
 
@@ -78,7 +83,7 @@ NODE_TOOLS = "tools"
 NODE_OUTPUT = "output_node"
 
 FINAL_TOOL_NAME = AnalyzeResult.__name__
-SEARCH_TOOL = AgentKnowledge.internal_knowledge_base_search
+MAX_ITERATIONS = 5
 
 
 class Playbook(LanggraphPlaybook):
@@ -92,9 +97,8 @@ class Playbook(LanggraphPlaybook):
     def init(self):
         def preprocess_node(state: AgentState):
             case = Case.get_raw_data(self.param_source_rowid)
-            state.case = case
             content = f"Current Case Data (includes latest alert): {json.dumps(case)}"
-            return {"messages": [HumanMessage(content=content)]}
+            return {"case": case, "messages": [HumanMessage(content=content)]}
 
         def analyze_node(state: AgentState):
             system_prompt_template = self.load_system_prompt_template("L3_SOC_Analyst")
@@ -103,21 +107,33 @@ class Playbook(LanggraphPlaybook):
             llm_api = LLMAPI()
             llm = llm_api.get_model(tag=["structured_output", "function_calling"])
 
-            llm_with_tools = llm.bind_tools([SEARCH_TOOL, AnalyzeResult])
+            llm_with_tools = llm.bind_tools([AgentKnowledge.internal_knowledge_base_search, AnalyzeResult])
 
             messages = [system_message] + state.messages
+
+            # 熔断处理
+            if state.loop_count >= MAX_ITERATIONS:
+                messages.append(HumanMessage(
+                    content="You have reached the maximum iterations limit. Based on all the information collected above, provide your final analysis using the AnalyzeResult tool immediately."))
+
             response = llm_with_tools.invoke(messages)
-            return {"messages": [response]}
+            return {"loop_count": state.loop_count + 1, "messages": [response]}
 
         def should_continue(state: AgentState):
             last_message = state.messages[-1]
-            if not last_message.tool_calls:
-                return END
 
+            # 只要模型调用了最终报告工具，就去 output
             for tool_call in last_message.tool_calls:
                 if tool_call["name"] == FINAL_TOOL_NAME:
                     return NODE_OUTPUT
-            return NODE_TOOLS
+
+            # 只有在还没到上限且模型想搜索时，才去 tools
+            if state.loop_count < MAX_ITERATIONS:
+                if last_message.tool_calls:
+                    return NODE_TOOLS
+
+            # 其他情况（包括达到上限后模型给出的非工具回复），重新回到分析节点由强制指令处理
+            return NODE_ANALYZE
 
         def output_node(state: AgentState):
             last_message = state.messages[-1]
@@ -145,7 +161,7 @@ class Playbook(LanggraphPlaybook):
 
         workflow.add_node(NODE_PREPROCESS, preprocess_node)
         workflow.add_node(NODE_ANALYZE, analyze_node)
-        workflow.add_node(NODE_TOOLS, ToolNode([SEARCH_TOOL]))
+        workflow.add_node(NODE_TOOLS, ToolNode([AgentKnowledge.internal_knowledge_base_search]))
         workflow.add_node(NODE_OUTPUT, output_node)
 
         workflow.add_edge(START, NODE_PREPROCESS)
@@ -162,6 +178,7 @@ class Playbook(LanggraphPlaybook):
 
         self.agent_state = AgentState()
         self.graph: CompiledStateGraph = workflow.compile(checkpointer=self.get_checkpointer())
+
         return True
 
     def run(self):

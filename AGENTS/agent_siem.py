@@ -134,6 +134,11 @@ a simpler, stateless agent created using the create_agent factory function from 
 
 # Test code
 if __name__ == "__main__":
+    import os
+    import django
+
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ASP.settings")
+    django.setup()
     # Agent_SIEM = SIEMAgent()
     #
     # # Example query that requires the agent to formulate an SPL query

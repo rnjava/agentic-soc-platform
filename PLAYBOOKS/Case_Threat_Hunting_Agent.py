@@ -2,7 +2,7 @@ import json
 import operator
 from typing import Annotated, Dict, List
 
-from langchain_core.messages import AnyMessage, ToolMessage, AIMessage
+from langchain_core.messages import AnyMessage, ToolMessage, AIMessage, HumanMessage
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from langgraph.graph.state import CompiledStateGraph
@@ -64,6 +64,9 @@ class Finding(BaseModel):
                 )
 
 
+MAX_ITERATIONS_OF_FUNCTIONS_CALL = 10
+
+
 class AnalystState(BaseModel):
     """
     Subgraph state: responsible for the execution of a single investigation task.
@@ -110,6 +113,10 @@ class AnalystState(BaseModel):
     ] = Field(
         default_factory=list,
         description="A log of tool calls and their results."
+    )
+    loop_count: int = Field(
+        default=0,
+        description="Count of function call iterations."
     )
 
 
@@ -189,11 +196,11 @@ class Playbook(LanggraphPlaybook):
 
     def build_analyst_graph(self):
         def analyst_node(state: AnalystState):
-            self.logger.info("Analyst Node Invoked")
+            self.logger.debug(f"Analyst Node Invoked (Loop: {state.loop_count})")
 
             messages = state.messages
 
-            # If it is the first time to enter (messages is empty), construct the initial System/Human Prompt
+            # 1. 构造初始消息（如果是第一轮）
             if not messages:
                 system_prompt_template = self.load_system_prompt_template("Analyst_System", lang=PROMPT_LANG)
                 system_message = system_prompt_template.format()
@@ -201,18 +208,43 @@ class Playbook(LanggraphPlaybook):
                     question=state.question,
                     case=state.case
                 )
-                few_shot_examples = [
-                ]
-                messages = [
-                    system_message,
-                    *few_shot_examples,
-                    human_message
-                ]
+                messages = [system_message, human_message]
 
             llm_api = LLMAPI()
-            base_llm = llm_api.get_model(tag=["powerful", "function_calling"])
-            llm_with_tools = base_llm.bind_tools([AgentSIEM.siem_search_by_natural_language, AgentCMDB.cmdb_query_asset, AgentTI.threat_intelligence_lookup])
-            response: AIMessage = llm_with_tools.invoke(messages)
+
+            # 2. 判断是否触发“强制总结”模式
+            # 如果达到最大次数，就不再绑定工具，并修改 Prompt 要求其收尾
+            if state.loop_count >= MAX_ITERATIONS_OF_FUNCTIONS_CALL - 1:
+                self.logger.warning("Approaching max iterations, forcing analyst to summarize.")
+
+                # 注入一条强制性指令，告诉 LLM 不要再查了
+                stop_instruction = (
+                    "\n\n[SYSTEM NOTICE]: You have reached the search limit. "
+                    "Do not call any more tools. Please provide your final conclusion "
+                    "based ONLY on the information gathered above."
+                )
+                # 将指令追加到最后一条消息中，或者作为新的 HumanMessage
+                messages.append(HumanMessage(content=stop_instruction))
+
+                # 使用不带工具绑定的模型，确保它只能输出文本
+                base_llm = llm_api.get_model(tag=["powerful"])
+                response: AIMessage = base_llm.invoke(messages)
+            else:
+                # 正常调查模式：绑定工具
+                base_llm = llm_api.get_model(tag=["powerful", "function_calling"])
+                llm_with_tools = base_llm.bind_tools([
+                    AgentSIEM.siem_search_by_natural_language,
+                    AgentCMDB.cmdb_query_asset,
+                    AgentTI.threat_intelligence_lookup
+                ])
+                response: AIMessage = llm_with_tools.invoke(messages)
+
+            # 3. 兜底逻辑：如果模型在最后关头依然执意返回 tool_calls（即便没绑定，有时也会幻觉）
+            # 我们可以手动清除 tool_calls 以确保 should_continue 路由到 finalizer
+            if state.loop_count >= MAX_ITERATIONS_OF_FUNCTIONS_CALL - 1:
+                if response.tool_calls:
+                    self.logger.info("Stripping hallucinated tool calls in final round.")
+                    response.tool_calls = []
 
             # update record
             for message in messages:
@@ -220,15 +252,14 @@ class Playbook(LanggraphPlaybook):
 
             self.add_message_to_playbook(response, node="analyst_node")
 
-            # Returns an updated list of messages, which LangGraph will automatically append to state.messages
-            return {"messages": [response]}
+            return {"loop_count": state.loop_count + 1, "messages": [response]}
 
         # Tool node
         tool_node = ToolNode([AgentSIEM.siem_search_by_natural_language, AgentCMDB.cmdb_query_asset, AgentTI.threat_intelligence_lookup])
 
         # Result generation node: when there is no tool call, it is responsible for converting the last message into a structured output
         def final_answer_node(state: AnalystState):
-            self.logger.info("Final Answer Node Invoked")
+            self.logger.debug("Final Answer Node Invoked")
 
             # handle tool_calls
             tool_calls = []
@@ -284,9 +315,9 @@ class Playbook(LanggraphPlaybook):
         def should_continue(state: AnalystState):
             last_message = state.messages[-1]
             if last_message.tool_calls:
-                self.logger.info("Routing to Tool Node")
+                self.logger.debug("Routing to Tool Node")
                 return 'tool'
-            self.logger.info("Routing to Finalizer Node")
+            self.logger.debug("Routing to Finalizer Node")
             return 'finalizer'
 
         # --- Build graph ---
@@ -311,7 +342,7 @@ class Playbook(LanggraphPlaybook):
     def build_main_graph(self):
         def intent_node(state: MainState):
             """Intent recognition: determine the overall goal"""
-            self.logger.info("Intent Node Invoked")
+            self.logger.debug("Intent Node Invoked")
 
             # Get Case data
             case = Case.get_raw_data(rowid=self.param_source_rowid)
@@ -365,7 +396,7 @@ class Playbook(LanggraphPlaybook):
             Check existing findings to decide what else to look for.
             Generate a batch of tasks at once.
             """
-            self.logger.info("Planner Node Invoked")
+            self.logger.debug("Planner Node Invoked")
 
             findings = state.findings
             iteration_count = state.iteration_count
@@ -375,7 +406,7 @@ class Playbook(LanggraphPlaybook):
 
             # Forced exit mechanism
             if iteration_count > self.max_iterations:
-                self.logger.info("Max iterations reached, terminating planning.")
+                self.logger.debug("Max iterations reached, terminating planning.")
                 node_out = {"current_plan": []}
                 return node_out
 
@@ -421,7 +452,7 @@ class Playbook(LanggraphPlaybook):
             )
             current_plan = response.current_plan
 
-            self.logger.info(f"Generated Plan for Round {iteration_count}")
+            self.logger.debug(f"Generated Plan for Round {iteration_count}")
 
             # update record
             for message in messages:
@@ -447,12 +478,12 @@ class Playbook(LanggraphPlaybook):
             iteration_count = state.iteration_count
             if not current_plan:
                 # No more tasks, end
-                self.logger.info(f"Round {iteration_count},No more tasks in plan, proceeding to report.")
+                self.logger.debug(f"Round {iteration_count},No more tasks in plan, proceeding to report.")
                 return "report"
 
             # There are tasks, parallel distribution (Map)
             # Send(target node name, State passed to this node)
-            self.logger.info(f"Round {iteration_count},Dispatching {len(current_plan)} tasks to analyst subgraph.")
+            self.logger.debug(f"Round {iteration_count},Dispatching {len(current_plan)} tasks to analyst subgraph.")
             return [
                 Send("analyst_subgraph", AnalystState(question=question, case=case))
                 for question in current_plan
@@ -460,7 +491,7 @@ class Playbook(LanggraphPlaybook):
 
         # --- Encapsulate Subgraph call ---
         def run_analyst_subgraph(state: AnalystState):
-            self.logger.info("Running Analyst Subgraph Wrapper")
+            self.logger.debug("Running Analyst Subgraph Wrapper")
             # The output of the graph is dict
             result: dict = self.analyst_graph.invoke(state)
             analyst_state = AnalystState(**result)
@@ -475,7 +506,7 @@ class Playbook(LanggraphPlaybook):
 
         def reporter_node(state: MainState):
             """Generate final report"""
-            self.logger.info("Reporter Node Invoked")
+            self.logger.debug("Reporter Node Invoked")
             findings = state.findings
             hunting_objective = state.hunting_objective
 
