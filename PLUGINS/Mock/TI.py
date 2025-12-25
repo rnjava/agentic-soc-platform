@@ -5,8 +5,8 @@ from typing import Dict, Literal
 
 class TI:
     """
-    模拟威胁情报查询。
-    支持 IP, Domain, Hash。
+    模拟威胁情报查询.
+    支持 IP, Domain, Hash.
     """
 
     # 预定义的恶意指标 (IOCs)
@@ -51,7 +51,7 @@ class TI:
             return {"status": "found", "data": TI.KNOWN_THREATS[ioc_value]}
 
         # 2. 默认 Mock：大部分查询都是干净的 (Benign)
-        # 偶尔随机生成一个低风险分数，增加真实感
+        # 偶尔随机生成一个低风险分数,增加真实感
         risk_score = 0 if random.random() > 0.1 else random.randint(5, 15)
 
         return {

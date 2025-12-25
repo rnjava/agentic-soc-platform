@@ -1,4 +1,4 @@
-# Nginx 配置文件，用于反向代理 Ollama 服务并启用基础认证
+# Nginx 配置文件,用于反向代理 Ollama 服务并启用基础认证
 # sudo htpasswd -c /etc/nginx/.htpasswd admin
 # sudo nano /etc/nginx/sites-available/ollama
 # sudo ln -s /etc/nginx/sites-available/ollama /etc/nginx/sites-enabled/
@@ -9,7 +9,7 @@
 
 server {
     listen 11434;
-    # 如果有域名可以填写，否则保持默认或填写服务器IP
+    # 如果有域名可以填写,否则保持默认或填写服务器IP
     server_name _; 
 
     location / {

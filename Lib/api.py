@@ -132,7 +132,7 @@ def is_ipaddress(ip_str):
 
 def is_private_ip(ip_address: str) -> bool:
     # 私有 IP 地址段的 CIDR 列表
-    # 注意：根据您的要求，不添加任何调试信息，如果有异常直接raise
+    # 注意：根据您的要求,不添加任何调试信息,如果有异常直接raise
     PRIVATE_NETWORKS = [
         '10.0.0.0/8',
         '172.16.0.0/12',
@@ -142,15 +142,15 @@ def is_private_ip(ip_address: str) -> bool:
     try:
         ip = ipaddress.ip_address(ip_address)
     except ValueError as e:
-        # 如果 ipaddress.ip_address 抛出异常，根据要求直接 raise
+        # 如果 ipaddress.ip_address 抛出异常,根据要求直接 raise
         return False
 
     # 检查是否为 IPv4 地址
     if not isinstance(ip, ipaddress.IPv4Address):
-        # 仅处理 IPv4 地址，IPv6 地址不在此函数的内网判断范围
+        # 仅处理 IPv4 地址,IPv6 地址不在此函数的内网判断范围
         return False
 
-    # 遍历私有网络，检查 IP 是否在其中
+    # 遍历私有网络,检查 IP 是否在其中
     for network_cidr in PRIVATE_NETWORKS:
         network = ipaddress.ip_network(network_cidr)
         if ip in network:
@@ -175,7 +175,7 @@ def get_one_uuid_str():
 
 
 def data_return(code=500, data=None,
-                msg_zh="服务器发生错误，请检查服务器",
+                msg_zh="服务器发生错误,请检查服务器",
                 msg_en="An error occurred on the server, please check the server."):
     return {'code': code, 'data': data, 'msg_zh': msg_zh, "msg_en": msg_en}
 
@@ -357,19 +357,19 @@ def get_dns_a(domain):
 
 def write_list_of_dict_to_excel_sheet(data_list: list[dict], file_path: str = '', sheet_name: str = None, return_content=False):
     """
-    仅使用 openpyxl 库将字典列表中的数据写入指定的 XLSX 文件和 sheet。
+    仅使用 openpyxl 库将字典列表中的数据写入指定的 XLSX 文件和 sheet.
 
     逻辑：
-    - 如果 XLSX 文件存在，则打开文件，否则创建新的 Workbook。
-    - 指定 sheet 如果存在，则覆盖（删除旧的，创建新的）；如果不存在，则创建。
-    - 字典的 key 作为表头。
-    - 当 return_content 为 True 时，不进行任何本地文件系统操作。
+    - 如果 XLSX 文件存在,则打开文件,否则创建新的 Workbook.
+    - 指定 sheet 如果存在,则覆盖(删除旧的,创建新的)；如果不存在,则创建.
+    - 字典的 key 作为表头.
+    - 当 return_content 为 True 时,不进行任何本地文件系统操作.
 
     Args:
-        data_list: 列表，列表中的每个元素是一个字典（代表一行数据）。
-        file_path: XLSX 文件的完整路径和名称（仅在 return_content=False 时使用）。
-        sheet_name: 要写入的 sheet 的名称。
-        return_content: 返回 Base64 编码的 Excel 内容。
+        data_list: 列表,列表中的每个元素是一个字典(代表一行数据).
+        file_path: XLSX 文件的完整路径和名称(仅在 return_content=False 时使用).
+        sheet_name: 要写入的 sheet 的名称.
+        return_content: 返回 Base64 编码的 Excel 内容.
     """
     if not data_list:
         return
@@ -443,7 +443,7 @@ def read_excel_sheet_to_list_of_dict(file_path: str, sheet_name: str) -> list[di
         raise Exception(f"加载文件时发生未知错误: {e}")
 
     if sheet_name not in workbook.sheetnames:
-        raise ValueError(f"Sheet '{sheet_name}' 不存在于工作簿中。")
+        raise ValueError(f"Sheet '{sheet_name}' 不存在于工作簿中.")
 
     worksheet = workbook[sheet_name]
 
@@ -470,21 +470,21 @@ def read_excel_sheet_to_list_of_dict(file_path: str, sheet_name: str) -> list[di
 
 def read_file_and_base64(file_path: str) -> dict:
     """
-    读取指定路径的文件，并返回包含文件名称和文件内容base64编码的字典。
+    读取指定路径的文件,并返回包含文件名称和文件内容base64编码的字典.
 
-    :param file_path: 文件的完整路径。
-    :return: 包含文件名称和文件内容base64编码的字典，
-             格式为 {"name": "文件名称，带后缀", "base64": "文件内容的base64编码"}。
-    :raises FileNotFoundError: 如果文件路径不存在。
-    :raises IOError: 如果读取文件时发生其他I/O错误。
-    :raises Exception: 如果发生其他意外错误。
+    :param file_path: 文件的完整路径.
+    :return: 包含文件名称和文件内容base64编码的字典,
+             格式为 {"name": "文件名称,带后缀", "base64": "文件内容的base64编码"}.
+    :raises FileNotFoundError: 如果文件路径不存在.
+    :raises IOError: 如果读取文件时发生其他I/O错误.
+    :raises Exception: 如果发生其他意外错误.
     """
     try:
         # 检查文件是否存在
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"文件未找到: {file_path}")
 
-        # 获取文件名称（带后缀）
+        # 获取文件名称(带后缀)
         file_name = os.path.basename(file_path)
 
         # 读取文件内容并进行base64编码
@@ -500,13 +500,13 @@ def read_file_and_base64(file_path: str) -> dict:
         }
 
     except FileNotFoundError as e:
-        # 直接raise异常，不包含调试信息
+        # 直接raise异常,不包含调试信息
         raise e
     except IOError as e:
-        # 直接raise异常，不包含调试信息
+        # 直接raise异常,不包含调试信息
         raise IOError(f"读取文件时发生I/O错误: {e}")
     except Exception as e:
-        # 直接raise异常，不包含调试信息
+        # 直接raise异常,不包含调试信息
         raise Exception(f"发生未知错误: {e}")
 
 
@@ -520,20 +520,20 @@ def generate_four_random_timestamps(
         max_delta_4: int = 12 * 60,  # T4 在 T3 之后 0 到 12 小时内 (转换为分钟)
 ) -> dict:
     """
-    生成四个满足指定时间间隔和格式的随机时间戳。
+    生成四个满足指定时间间隔和格式的随机时间戳.
 
     Args:
-        days_ago_max: 第一个时间点 T1 最多在当前时间之前的天数（可配置）。
-        min_delta_2, max_delta_2: T2 相对于 T1 的最小/最大分钟间隔。
-        min_delta_3, max_delta_3: T3 相对于 T2 的最小/最大分钟间隔。
-        min_delta_4, max_delta_4: T4 相对于 T3 的最小/最大分钟间隔（以分钟计）。
+        days_ago_max: 第一个时间点 T1 最多在当前时间之前的天数(可配置).
+        min_delta_2, max_delta_2: T2 相对于 T1 的最小/最大分钟间隔.
+        min_delta_3, max_delta_3: T3 相对于 T2 的最小/最大分钟间隔.
+        min_delta_4, max_delta_4: T4 相对于 T3 的最小/最大分钟间隔(以分钟计).
 
     Returns:
-        包含四个格式化时间戳的字典。
+        包含四个格式化时间戳的字典.
     """
 
     # 1. 定义时间戳格式
-    # %Y-%m-%dT%H:%M:%SZ 格式对应 ISO 8601，其中 'Z' 表示 UTC/Zulu time
+    # %Y-%m-%dT%H:%M:%SZ 格式对应 ISO 8601,其中 'Z' 表示 UTC/Zulu time
     TIME_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 
     # 2. 获取当前的 UTC 时间作为基准时间
@@ -545,7 +545,7 @@ def generate_four_random_timestamps(
     # 计算 T1 的时间范围：[now_utc - days_ago_max 天, now_utc]
     start_t1 = now_utc - datetime.timedelta(days=days_ago_max)
 
-    # 将时间范围转换为秒数（时间戳）
+    # 将时间范围转换为秒数(时间戳)
     time_diff_seconds = int((now_utc - start_t1).total_seconds())
 
     # 生成一个 T1 之前的随机秒数

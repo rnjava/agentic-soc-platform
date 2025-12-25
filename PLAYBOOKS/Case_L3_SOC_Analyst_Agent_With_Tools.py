@@ -34,41 +34,41 @@ class Severity(str, Enum):
 class AnalyzeResult(BaseModel):
     """
     【最终研判报告工具】
-    当且仅当你通过分析原始 Case 数据，并结合 KnowledgeAgent.search 搜索到的外部情报得出定论后，调用此工具。
-    调用此工具将提交最终分析结果并结束任务。
+    当且仅当你通过分析原始 Case 数据,并结合 KnowledgeAgent.search 搜索到的外部情报得出定论后,调用此工具.
+    调用此工具将提交最终分析结果并结束任务.
     """
     model_config = ConfigDict(use_enum_values=True)
 
     original_severity: Severity = Field(
-        description="该案件（Case）在挂载新告警之前的初始严重程度。"
+        description="该案件(Case)在挂载新告警之前的初始严重程度."
     )
     new_severity: Severity = Field(
         description="""
-        基于新证据重新评估后的严重程度。
+        基于新证据重新评估后的严重程度.
         判定逻辑：
-        1. 如果新告警显示攻击链向后期演进（如从初始访问进入到权限维持或数据外泄），应显著提升级别。
-        2. 如果新告警仅是已知风险的重复（噪声），应保持或降低级别。
+        1. 如果新告警显示攻击链向后期演进(如从初始访问进入到权限维持或数据外泄),应显著提升级别.
+        2. 如果新告警仅是已知风险的重复(噪声),应保持或降低级别.
         """
     )
     confidence: ConfidenceLevel = Field(
         description="""
-        研判置信度。
-        - High: 存在异构证据交叉验证（例如 NDR 流量告警与 EDR 进程告警指向同一行为）。
-        - Medium: 证据吻合攻击逻辑，但缺乏多维数据源佐证。
-        - Low: 证据模糊，可能是误报。
+        研判置信度.
+        - High: 存在异构证据交叉验证(例如 NDR 流量告警与 EDR 进程告警指向同一行为).
+        - Medium: 证据吻合攻击逻辑,但缺乏多维数据源佐证.
+        - Low: 证据模糊,可能是误报.
         """
     )
     analysis_rationale: str | None = Field(
         default=None,
-        description="详细推理过程。需包含识别到的新证据、新旧告警关联逻辑以及搜索工具返回的情报如何辅助了判断。"
+        description="详细推理过程.需包含识别到的新证据、新旧告警关联逻辑以及搜索工具返回的情报如何辅助了判断."
     )
     current_attack_stage: str | dict[str, Any] | None = Field(
         default=None,
-        description="参考 MITRE ATT&CK 战术名称（如：'T1059 - Command and Control', 'Lateral Movement'）。"
+        description="参考 MITRE ATT&CK 战术名称(如：'T1059 - Command and Control', 'Lateral Movement')."
     )
     recommended_actions: str | dict[str, Any] | None = Field(
         default=None,
-        description="具体且可执行的应急响应建议（如：'Isolate host 10.1.1.5', 'Reset user password'）。"
+        description="具体且可执行的应急响应建议(如：'Isolate host 10.1.1.5', 'Reset user password')."
     )
 
 

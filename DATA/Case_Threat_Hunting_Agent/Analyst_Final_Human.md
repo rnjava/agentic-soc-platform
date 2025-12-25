@@ -9,4 +9,4 @@
 <raw_answer_content>{content_to_format}</raw_answer_content>
 
 ---
-请根据上述内容，提炼出最终的**答案**和**推理过程**。
+请根据上述内容,提炼出最终的**答案**和**推理过程**.

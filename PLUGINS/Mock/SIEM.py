@@ -9,17 +9,17 @@ from PLUGINS.LLM.llmapi import LLMAPI
 
 class SIEMMock:
     """
-    基于 LLM 的动态 SIEM 日志生成器。
+    基于 LLM 的动态 SIEM 日志生成器.
 
     逻辑：
-    1. 接收自然语言查询。
-    2. 指导 LLM 根据查询和预设的失陷指标（IOCs）生成相应的JSON字符串。
-    3. 解析 LLM 返回的 JSON 字符串，并将其作为工具的输出。
+    1. 接收自然语言查询.
+    2. 指导 LLM 根据查询和预设的失陷指标(IOCs)生成相应的JSON字符串.
+    3. 解析 LLM 返回的 JSON 字符串,并将其作为工具的输出.
     """
 
     # ==========================================
     # 1. 核心控制配置：失陷指标列表 (IOCs)
-    # 调整这里的内容，即可改变生成的日志方向
+    # 调整这里的内容,即可改变生成的日志方向
     # ==========================================
     COMPROMISED_IOCS = {
         "internal_ips": ["10.67.3.130", "10.10.10.5"],  # 受害者主机
@@ -162,7 +162,7 @@ This is the absolute truth for your simulation. Any query involving these entiti
     @staticmethod
     def _extract_json_from_response(raw_text: str) -> List[Dict[str, Any]]:
         """
-        从LLM的原始输出中稳健地提取和解析JSON列表。
+        从LLM的原始输出中稳健地提取和解析JSON列表.
         """
         # 1. 尝试直接解析整个文本
         try:
@@ -171,7 +171,7 @@ This is the absolute truth for your simulation. Any query involving these entiti
             if isinstance(loaded_json, list):
                 return loaded_json
         except json.JSONDecodeError:
-            pass  # 如果失败，则继续尝试提取
+            pass  # 如果失败,则继续尝试提取
 
         # 2. 尝试从Markdown代码块中提取
         match = re.search(r'```json\s*([\s\S]+?)\s*```', raw_text, re.DOTALL)
@@ -182,7 +182,7 @@ This is the absolute truth for your simulation. Any query involving these entiti
                 if isinstance(loaded_json, list):
                     return loaded_json
             except json.JSONDecodeError:
-                # 如果代码块内容也不是有效的JSON，则继续
+                # 如果代码块内容也不是有效的JSON,则继续
                 pass
 
         # 3. 尝试查找第一个 '[' 和最后一个 ']' 之间的内容
@@ -195,10 +195,10 @@ This is the absolute truth for your simulation. Any query involving these entiti
                 if isinstance(loaded_json, list):
                     return loaded_json
             except json.JSONDecodeError:
-                # 如果这部分内容也不是有效的JSON，则准备抛出最终错误
+                # 如果这部分内容也不是有效的JSON,则准备抛出最终错误
                 pass
 
-        # 4. 如果所有尝试都失败，则抛出异常
+        # 4. 如果所有尝试都失败,则抛出异常
         raise json.JSONDecodeError("Failed to find any valid JSON list in the LLM output.", raw_text, 0)
 
     @staticmethod

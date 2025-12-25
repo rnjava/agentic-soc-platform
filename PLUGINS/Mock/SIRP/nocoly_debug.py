@@ -15,7 +15,7 @@ def import_alerts():
     for alert in alert_list:
         rule_def: GroupRule = ALL_RULES.get(alert["rule_id"])
         if rule_def is None:
-            print(f"未找到规则定义，跳过处理此告警: {alert['rule_id']}")
+            print(f"未找到规则定义,跳过处理此告警: {alert['rule_id']}")
             continue
 
         default_times = generate_four_random_timestamps()
@@ -53,7 +53,7 @@ def old():
     for alert in alert_list:
         rule_def: GroupRule = ALL_RULES.get(alert["rule_id"])
         if rule_def is None:
-            print(f"未找到规则定义，跳过处理此告警: {alert['rule_id']}")
+            print(f"未找到规则定义,跳过处理此告警: {alert['rule_id']}")
             continue
 
         default_times = generate_four_random_timestamps()
