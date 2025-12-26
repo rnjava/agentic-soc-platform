@@ -11,7 +11,7 @@ from PLUGINS.Redis.redis_client import RedisClient
 
 class RedisStreamAPI:
     """
-    Redis Stream API封装类，提供消息发送和读取功能
+    Redis Stream API封装类,提供消息发送和读取功能
     """
 
     def __init__(self):
@@ -27,7 +27,7 @@ class RedisStreamAPI:
             message (Dict[str, Any]): 要发送的消息内容
         
         Returns:
-            Optional[str]: 发送成功返回消息ID，失败返回None
+            Optional[str]: 发送成功返回消息ID,失败返回None
         """
         try:
             data = json.dumps(message, ensure_ascii=False)
@@ -50,12 +50,12 @@ class RedisStreamAPI:
         Args:
             noack:
             stream_key (str): Redis stream的key名称
-            consumer_group (str): 消费者组名称，如果为None则使用默认配置
-            consumer_name (str): 消费者名称，如果为None则使用默认配置
-            timeout (int): 读取超时时间（毫秒），默认5000毫秒
+            consumer_group (str): 消费者组名称,如果为None则使用默认配置
+            consumer_name (str): 消费者名称,如果为None则使用默认配置
+            timeout (int): 读取超时时间(毫秒),默认5000毫秒
         
         Returns:
-            Optional[Dict[str, Any]]: 读取到的消息，如果没有消息或出错则返回None
+            Optional[Dict[str, Any]]: 读取到的消息,如果没有消息或出错则返回None
         """
         try:
             if consumer_group is None:
@@ -66,7 +66,7 @@ class RedisStreamAPI:
             # 确保消费者组存在
             flag = self._ensure_consumer_group(stream_key, consumer_group)
             if not flag:
-                logger.error(f"无法确保消费者组 {consumer_group} 存在。")
+                logger.error(f"无法确保消费者组 {consumer_group} 存在.")
                 return None
             # 从消费者组读取消息
             messages = self.redis_client.xreadgroup(
@@ -102,9 +102,9 @@ class RedisStreamAPI:
 
     def read_stream_from_start(self, stream_key, start_id='0-0'):
         """
-        从指定 Stream 的开头重复读取消息。
-        :param topic: Stream 的名称。
-        :param count: 要读取的消息数量。
+        从指定 Stream 的开头重复读取消息.
+        :param topic: Stream 的名称.
+        :param count: 要读取的消息数量.
         """
 
         try:
@@ -140,10 +140,10 @@ class RedisStreamAPI:
         Args:
             stream_key (str): Redis stream的key名称
             message_id (str): 消息ID
-            consumer_group (str): 消费者组名称，如果为None则使用默认配置
+            consumer_group (str): 消费者组名称,如果为None则使用默认配置
         
         Returns:
-            bool: 确认成功返回True，失败返回False
+            bool: 确认成功返回True,失败返回False
         """
         try:
             if consumer_group is None:
@@ -168,8 +168,8 @@ class RedisStreamAPI:
         
         Args:
             stream_key (str): Redis stream的key名称
-            consumer_group (str): 消费者组名称，如果为None则使用默认配置
-            consumer_name (str): 消费者名称，如果为None则使用默认配置
+            consumer_group (str): 消费者组名称,如果为None则使用默认配置
+            consumer_name (str): 消费者名称,如果为None则使用默认配置
         
         Returns:
             List[Dict[str, Any]]: 待处理的消息列表
@@ -201,7 +201,7 @@ class RedisStreamAPI:
 
     def _ensure_consumer_group(self, stream_key: str, consumer_group: str):
         """
-        确保消费者组存在，如果不存在则创建
+        确保消费者组存在,如果不存在则创建
         
         Args:
             stream_key (str): Redis stream的key名称
@@ -217,7 +217,7 @@ class RedisStreamAPI:
                 self.redis_client.xgroup_create(stream_key, consumer_group, '$', mkstream=True)
             return True
         except redis.ResponseError as e:
-            # 如果流不存在，xinfo_groups会报错。捕获此错误并创建流和组。
+            # 如果流不存在,xinfo_groups会报错.捕获此错误并创建流和组.
             if "no such key" in str(e).lower():
                 try:
                     self.redis_client.xgroup_create(stream_key, consumer_group, '$', mkstream=True)
@@ -229,7 +229,7 @@ class RedisStreamAPI:
                         logger.exception(f"创建流 {stream_key} 和组 {consumer_group} 失败: {create_e}")
                         return False
             elif "BUSYGROUP" in str(e):
-                # 消费者组已存在，这是正常情况
+                # 消费者组已存在,这是正常情况
                 return True
             else:
                 logger.exception(f"检查或创建消费者组时发生未知Redis响应错误: {e}")
@@ -246,7 +246,7 @@ class RedisStreamAPI:
             stream_key (str): Redis stream的key名称
         
         Returns:
-            Optional[Dict[str, Any]]: stream信息，失败返回None
+            Optional[Dict[str, Any]]: stream信息,失败返回None
         """
         try:
             info = self.redis_client.xinfo_stream(stream_key)
@@ -263,7 +263,7 @@ class RedisStreamAPI:
             stream_key (str): Redis stream的key名称
         
         Returns:
-            bool: 删除成功返回True，失败返回False
+            bool: 删除成功返回True,失败返回False
         """
         try:
             result = self.redis_client.delete(stream_key)
@@ -284,10 +284,10 @@ class RedisStreamAPI:
 
     def clean_redis_stream(self, max_age_days=30):
         """
-        清理Redis Stream中超过指定天数的键值对。
+        清理Redis Stream中超过指定天数的键值对.
         """
-        # 计算最老允许的时间戳，单位为毫秒
-        # Unix时间戳（秒）* 1000
+        # 计算最老允许的时间戳,单位为毫秒
+        # Unix时间戳(秒)* 1000
         logger.info(f"Clean Redis Stream older than {max_age_days} days.")
         cutoff_timestamp_ms = int((datetime.datetime.now() - datetime.timedelta(days=max_age_days)).timestamp() * 1000)
 
@@ -300,7 +300,7 @@ class RedisStreamAPI:
                     # 我们可以使用 `unix_time_ms-0` 作为删除的上限ID
                     trim_id = f'{cutoff_timestamp_ms}-0'
 
-                    # `XTRIM` 带有 `MINID` 选项，用于删除ID小于指定ID的所有条目
+                    # `XTRIM` 带有 `MINID` 选项,用于删除ID小于指定ID的所有条目
                     trimmed_count = self.redis_client.xtrim(key, minid=trim_id)
                     logger.info(f"Delete {trimmed_count} items from '{key}'")
         except Exception as e:

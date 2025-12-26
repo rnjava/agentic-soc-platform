@@ -18,10 +18,10 @@ from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
 from PLUGINS.Redis.CONFIG import REDIS_STREAM_STORE_DAYS
 from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
 from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Knowledge, KnowledgeAction
-from PLUGINS.mem0.CONFIG import USE as MEM_ZERO_USE
+from PLUGINS.Mem0.CONFIG import USE as MEM_ZERO_USE
 
 if MEM_ZERO_USE:
-    from PLUGINS.mem0.mem_zero import mem_zero_singleton
+    from PLUGINS.Mem0.mem_zero import mem_zero_singleton
 
 ASP_REST_API_TOKEN = "nocoly_token_for_playbook"
 
@@ -91,7 +91,7 @@ class MainMonitor(object):
         Xcache.set_token_user(ASP_REST_API_TOKEN, api_usr, None)
 
         logger.info("Load Playbook module config")
-        Playbook.load_all_module_config()
+        Playbook.load_all_playbook_config()
 
         # self.MainScheduler.add_job(func=self.subscribe_clean_thread,
         #                            max_instances=1,
@@ -124,7 +124,7 @@ class MainMonitor(object):
             row_id = one_record.get("rowid")
             module_config = Xcache.get_module_config_by_name_and_type(type, name)
             if module_config is None:
-                Playbook.load_all_module_config()
+                Playbook.load_all_playbook_config()
                 module_config = Xcache.get_module_config_by_name_and_type(type, name)
             if module_config is None:
                 logger.error(f"Playbook module config not found: {type} - {name}")

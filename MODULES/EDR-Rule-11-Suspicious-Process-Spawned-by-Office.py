@@ -96,14 +96,14 @@ class Module(LanggraphModule):
                         "headers": {
                             "From": "\"Microsoft Support\" <support-noreply@microsft.com>",
                             "To": "\"Valued Customer\" <user@example.com>",
-                            "Subject": "紧急：您的账户已被暂停，需要立即验证 Urgent: Your Account is Suspended, Immediate Verification Required",
+                            "Subject": "紧急：您的账户已被暂停,需要立即验证 Urgent: Your Account is Suspended, Immediate Verification Required",
                             "Date": "Tue, 2 Sep 2025 14:30:10 +0800",
                             "Return-Path": "<bounce-scam@phish-delivery.net>",
                             "Authentication-Results": "mx.example.com; spf=fail smtp.mail=support-noreply@microsft.com; dkim=fail header.d=microsft.com; dmarc=fail (p=REJECT sp=REJECT) header.from=microsft.com",
                         },
                         "body": {
-                            "plain_text": "尊敬的用户,\n\n我们的系统检测到您的帐户存在异常登录活动。为了保护您的安全，我们已临时暂停您的帐户。\n\n请立即点击以下链接以验证您的身份并恢复您的帐户访问权限：\n\nhttps://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=... (请注意，这只是显示文本，实际链接是恶意的)\n\n如果您不在24小时内完成验证，您的帐户将被永久锁定。\n\n感谢您的合作。\n\n微软安全团队\n\n---\n\nDear User,\n\nOur system has detected unusual sign-in activity on your account. For your security, we have temporarily suspended your account.\n\nPlease click the link below immediately to verify your identity and restore access:\n\nhttp://secure-login-update-required.com/reset-password?user=user@example.com\n\nIf you do not verify within 24 hours, your account will be permanently locked.\n\nThank you for your cooperation.\n\nThe Microsoft Security Team",
-                            "html": "<html><head></head><body><p>尊敬的用户,</p><p>我们的系统检测到您的帐户存在异常登录活动。为了保护您的安全，我们已临时暂停您的帐户。</p><p>请立即点击以下链接以验证您的身份并恢复您的帐户访问权限：</p><p><a href='http://secure-login-update-required.com/reset-password?user=user@example.com'>https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=...</a></p><p>如果您不在24小时内完成验证，您的帐户将被永久锁定。</p><p>感谢您的合作。</p><p><b>微软安全团队</b></p></body></html>"
+                            "plain_text": "尊敬的用户,\n\n我们的系统检测到您的帐户存在异常登录活动.为了保护您的安全,我们已临时暂停您的帐户.\n\n请立即点击以下链接以验证您的身份并恢复您的帐户访问权限：\n\nhttps://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=... (请注意,这只是显示文本,实际链接是恶意的)\n\n如果您不在24小时内完成验证,您的帐户将被永久锁定.\n\n感谢您的合作.\n\n微软安全团队\n\n---\n\nDear User,\n\nOur system has detected unusual sign-in activity on your account. For your security, we have temporarily suspended your account.\n\nPlease click the link below immediately to verify your identity and restore access:\n\nhttp://secure-login-update-required.com/reset-password?user=user@example.com\n\nIf you do not verify within 24 hours, your account will be permanently locked.\n\nThank you for your cooperation.\n\nThe Microsoft Security Team",
+                            "html": "<html><head></head><body><p>尊敬的用户,</p><p>我们的系统检测到您的帐户存在异常登录活动.为了保护您的安全,我们已临时暂停您的帐户.</p><p>请立即点击以下链接以验证您的身份并恢复您的帐户访问权限：</p><p><a href='http://secure-login-update-required.com/reset-password?user=user@example.com'>https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=...</a></p><p>如果您不在24小时内完成验证,您的帐户将被永久锁定.</p><p>感谢您的合作.</p><p><b>微软安全团队</b></p></body></html>"
                         },
                         "attachments": [
                             {

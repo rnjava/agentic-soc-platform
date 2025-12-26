@@ -1,3 +1,4 @@
+import os
 from typing import Annotated, List, Literal, Any
 
 from langchain.agents import create_agent
@@ -9,13 +10,15 @@ from langgraph.prebuilt import ToolNode
 from pydantic import BaseModel, Field
 
 from Lib.baseplaybook import LanggraphPlaybook
+from Lib.configs import DATA_DIR
+from Lib.llmapi import load_system_prompt_template
 from PLUGINS.LLM.llmapi import LLMAPI
 # Modify the following functions to the actual CMDB API
 from PLUGINS.Mock.CMDB import get_ci_context_tool, fuzzy_search_ci_tool, get_cis_by_software_tool, get_cis_by_port_tool, get_cis_by_service_tool, \
     get_cis_by_user_tool
 
 
-class CMDBAgent(object):
+class AgentCMDB(object):
 
     @staticmethod
     def cmdb_query_asset(
@@ -28,7 +31,7 @@ class CMDBAgent(object):
         # result = cmdb_query(query)
         # return result
 
-        agent = GraphAgent()
+        agent = AgentGraphCMDB()
         result = agent.cmdb_query(query)
         return result
 
@@ -42,7 +45,7 @@ class AgentState(BaseModel):
 
 
 # Use langgraph to create a CMDB query agent for finer-grained control
-class GraphAgent(LanggraphPlaybook):
+class AgentGraphCMDB(LanggraphPlaybook):
 
     def __init__(self):
         super().__init__()  # do not delete this code
@@ -124,10 +127,12 @@ def cmdb_query(
         get_cis_by_service_tool,
         get_cis_by_user_tool,
     ]
+    prompt_path = os.path.join(DATA_DIR, "Agent_CMDB", "system.md")
+    system_prompt_template = load_system_prompt_template(prompt_path)
     agent = create_agent(
         model=llm,
         tools=CMDB_AGENT_TOOLS,
-        system_prompt="You are a CMDB query assistant. You can call appropriate CMDB tools to query based on the user's natural language query request and return the results in JSON format.",
+        system_prompt=system_prompt_template.format(),
     )
 
     response = agent.invoke({"messages": [HumanMessage(content=query)]})
@@ -141,6 +146,6 @@ if __name__ == "__main__":
 
     # result = cmdb_query(query)
 
-    agent = GraphAgent()
+    agent = AgentGraphCMDB()
     result = agent.cmdb_query(query)
     print(result)

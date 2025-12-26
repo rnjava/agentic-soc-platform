@@ -5,7 +5,7 @@ from PLUGINS.AlienVaultOTX.CONFIG import API_KEY, HTTP_PROXY
 
 class AlienVaultOTX(object):
     def __init__(self):
-        """初始化 AlienVaultOTX，设置 API 密钥和基础 URL"""
+        """初始化 AlienVaultOTX,设置 API 密钥和基础 URL"""
         self.api_key = API_KEY
         self.base_url = "https://otx.alienvault.com/api/v1"
         self.headers = {
@@ -21,7 +21,7 @@ class AlienVaultOTX(object):
         return req_result
 
     def query_url(self, url: str) -> dict:
-        """查询 URL 的情报信息（不主动请求目标 URL）"""
+        """查询 URL 的情报信息(不主动请求目标 URL)"""
         try:
             # URL 编码避免路径参数导致接口异常
             encoded_url = requests.utils.quote(url, safe='')
@@ -36,7 +36,7 @@ class AlienVaultOTX(object):
             return {"error": str(e)}
 
     def query_file(self, file_hash: str) -> dict:
-        """查询文件哈希的情报信息（支持 MD5、SHA1、SHA256）"""
+        """查询文件哈希的情报信息(支持 MD5、SHA1、SHA256)"""
         # 根据哈希长度确定类型
         hash_length = len(file_hash)
         if hash_length == 32:
@@ -71,7 +71,7 @@ class AlienVaultOTX(object):
 
     def calculate_reputation_score(self, attributes: dict) -> int:
         """
-        重新计算OTX的reputation分值（简化版）
+        重新计算OTX的reputation分值(简化版)
 
         Returns:
             int: reputation分值
@@ -80,7 +80,7 @@ class AlienVaultOTX(object):
         """
         score = 0
 
-        # 1. 脉冲信息分析（核心指标）
+        # 1. 脉冲信息分析(核心指标)
         pulse_info = attributes.get('pulse_info', {})
         pulse_count = pulse_info.get('count', 0)
         pulses = pulse_info.get('pulses', [])

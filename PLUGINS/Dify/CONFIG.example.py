@@ -4,7 +4,7 @@
 # Dify API接口
 DIFY_BASE_URL = "http://192.168.241.128/v1"
 
-# Dify 代理设置，如可直接访问DIFY_BASE_URL则设置为None
+# Dify 代理设置,如可直接访问DIFY_BASE_URL则设置为None
 # 支持代理格式
 # HTTP: http://192.168.1.100:3128
 # HTTP带认证: http://user:pass@192.168.1.100:3128

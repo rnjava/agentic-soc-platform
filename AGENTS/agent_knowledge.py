@@ -5,19 +5,17 @@ from langchain_core.documents import Document
 
 from Lib.log import logger
 from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
+from PLUGINS.Mem0.CONFIG import USE as MEM_ZERO_USE
 from PLUGINS.SIRP.sirpapi import Knowledge
-from PLUGINS.mem0.CONFIG import USE as MEM_ZERO_USE
 
 if MEM_ZERO_USE:
-    from PLUGINS.mem0.mem_zero import mem_zero_singleton
-from langchain_core.tools import tool
+    from PLUGINS.Mem0.mem_zero import mem_zero_singleton
 
 
-class KnowledgeAgent(object):
+class AgentKnowledge(object):
 
     @staticmethod
-    @tool("internal_knowledge_base_search")
-    def search(
+    def internal_knowledge_base_search(
             query: Annotated[
                 str, "The search query, can be an entity (IP, Email, Domain) or a business concept/rule description or "
                      "anything you want to know from internal knowledge base."]
@@ -25,6 +23,7 @@ class KnowledgeAgent(object):
         """
         Search the internal knowledge base for specific entities, business-specific logic, SOPs, or historical context.
         """
+        logger.debug(f"knowledge search : {query}")
         threshold = 0.8
         result_all = []
         docs_qdrant = embedding_api_singleton_qdrant.search_documents_with_rerank(collection_name=Knowledge.COLLECTION_NAME, query=query, k=10, top_n=3)
@@ -46,9 +45,10 @@ class KnowledgeAgent(object):
                 memory = one_record.get("memory", "")
                 if rerank_score >= threshold:
                     result_all.append(memory)
-        print(query)
-        print(result_all)
-        return json.dumps(result_all, ensure_ascii=False)
+
+        results = json.dumps(result_all, ensure_ascii=False)
+        logger.debug(f"Knowledge search results : {results}")
+        return results
 
 # if __name__ == "__main__":
 #     query = "test@gmail.com"

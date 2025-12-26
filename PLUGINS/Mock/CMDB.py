@@ -156,16 +156,18 @@ class CMDB(object):
     # --- 1. Core common retrieval interface ---
 
     def get_ci_context(self,
-                       identifier_type: Annotated[str, "The type of identifier used for the query, accepts 'ip_address', 'hostname', 'mac_address', 'ci_id' or 'user_id'"],
+                       identifier_type: Annotated[
+                           str, "The type of identifier used for the query, accepts 'ip_address', 'hostname', 'mac_address', 'ci_id' or 'user_id'"],
                        identifier_value: Annotated[str, "The specific value of the identifier, for example '192.168.10.5' or 'prod-web-01'"]
-                       ) -> Annotated[Dict[str, Any], "The complete dictionary data of a single matched CI, including hundreds of attributes such as business criticality, owner team, etc."]:
+                       ) -> Annotated[
+        Dict[str, Any], "The complete dictionary data of a single matched CI, including hundreds of attributes such as business criticality, owner team, etc."]:
         """
         [A. Exact Identifier Retrieval]: Retrieves the complete contextual information of a single configuration item (CI) based on an exact identifier (IP, hostname, CI ID, or user ID).
         This interface is used to quickly associate technical indicators in alarms with specific business assets when a security incident occurs.
         If the CI cannot be found, a LookupError is thrown.
         """
         if not identifier_type or not identifier_value:
-            raise ValueError("Identifier type and value cannot be empty.")
+            return {"error": "Identifier type and value cannot be empty."}
 
         ci_data = self._find_ci(identifier_type, identifier_value)
 
@@ -175,13 +177,13 @@ class CMDB(object):
                 for ci_data in self._data.values():
                     if ci_data.get("ci_type") == "Employee" and ci_data.get("user_id") == identifier_value:
                         return ci_data
-
-            raise LookupError(f"CI not found for {identifier_type}: {identifier_value}")
+            return {"error": f"CI not found for {identifier_type}: {identifier_value}"}
 
         return ci_data
 
     def fuzzy_search_ci(self,
-                        partial_hostname: Annotated[Optional[str], "Partial hostname fragment, e.g. 'prod-'. If provided, a partial match will be performed."] = None,
+                        partial_hostname: Annotated[
+                            Optional[str], "Partial hostname fragment, e.g. 'prod-'. If provided, a partial match will be performed."] = None,
                         regex_pattern: Annotated[Optional[str], "Regular expression for advanced matching"] = None
                         ) -> Annotated[List[Dict[str, Any]], "A list of matched CIs, returning only CI ID, CI type, hostname, and business criticality."]:
         """
@@ -190,7 +192,7 @@ class CMDB(object):
         If neither partial_hostname nor regex_pattern is provided, a ValueError is thrown.
         """
         if not partial_hostname and not regex_pattern:
-            raise ValueError("Either partial_hostname or regex_pattern must be provided.")
+            return [{"error": "Either partial_hostname or regex_pattern must be provided."}]
 
         matching_cis = []
 
@@ -206,7 +208,7 @@ class CMDB(object):
                     if hostname and re.search(regex_pattern, hostname):
                         match = True
                 except re.error as e:
-                    raise ValueError(f"Invalid regular expression: {e}")
+                    return [{"error": f"Invalid regular expression: {e}"}]
 
             if match:
                 matching_cis.append({
@@ -222,14 +224,16 @@ class CMDB(object):
 
     def get_cis_by_software(self,
                             software_name: Annotated[str, "The name of the software to find, for example 'nginx' or 'java'"],
-                            version: Annotated[Optional[str], "Optional software version number, for example '11' or '1.20.1'. If not provided, all versions will be matched."] = None
-                            ) -> Annotated[List[Dict[str, Any]], "A list of CIs running the specified software, including CI ID, IP address, CI type, and business criticality."]:
+                            version: Annotated[Optional[
+                                str], "Optional software version number, for example '11' or '1.20.1'. If not provided, all versions will be matched."] = None
+                            ) -> Annotated[
+        List[Dict[str, Any]], "A list of CIs running the specified software, including CI ID, IP address, CI type, and business criticality."]:
         """
         [C. Software Version Retrieval]: Retrieves a list of configuration items (CIs) running a specific software or software version.
         This interface is used in the vulnerability management process to quickly determine which assets are affected by known software vulnerabilities (such as Log4j, specific versions of Tomcat).
         """
         if not software_name:
-            raise ValueError("Software name cannot be empty.")
+            return [{"error": "Software name cannot be empty."}]
 
         matching_cis = []
         for ci_data in self._data.values():
@@ -252,13 +256,14 @@ class CMDB(object):
     def get_cis_by_port(self,
                         port_number: Annotated[int, "The port number to find, for example 22 or 3306"],
                         protocol: Annotated[str, "Port protocol, for example 'TCP' or 'UDP', defaults to 'TCP'"] = "TCP"
-                        ) -> Annotated[List[Dict[str, Any]], "A list of CIs that open the specified port and protocol, including CI ID, IP address, and network zone."]:
+                        ) -> Annotated[
+        List[Dict[str, Any]], "A list of CIs that open the specified port and protocol, including CI ID, IP address, and network zone."]:
         """
         [D. Open Port Retrieval]: Retrieves a list of configuration items (CIs) that have a specific port and protocol open.
         This interface is used for security audits to quickly identify misconfigured assets or assets with unauthorized externally open services.
         """
         if not isinstance(port_number, int) or port_number <= 0:
-            raise ValueError("Invalid port number.")
+            return [{"error": "Invalid port number."}]
 
         matching_cis = []
         for ci_data in self._data.values():
@@ -278,13 +283,14 @@ class CMDB(object):
 
     def get_cis_by_service(self,
                            service_id: Annotated[str, "The business service ID to query, for example 'SVC-ECOM-001'"]
-                           ) -> Annotated[List[Dict[str, Any]], "A list of all underlying CIs that support the business service, including CI ID, IP address, CI type, and business criticality."]:
+                           ) -> Annotated[List[
+        Dict[str, Any]], "A list of all underlying CIs that support the business service, including CI ID, IP address, CI type, and business criticality."]:
         """
         [E. Business Service Query]: Retrieves a list of all underlying configuration items (CIs) that support a specific critical business service.
         This interface is used for advanced impact analysis to quickly find all related servers, databases, and cloud instances when a business service alarm occurs.
         """
         if not service_id:
-            raise ValueError("Service ID cannot be empty.")
+            return [{"error": "Service ID cannot be empty."}]
 
         matching_cis = []
         for ci_data in self._data.values():
@@ -301,14 +307,15 @@ class CMDB(object):
 
     def get_cis_by_user(self,
                         user_id: Annotated[str, "The user ID to query, for example 'user_a'"]
-                        ) -> Annotated[List[Dict[str, Any]], "A list of all CIs associated with the user, including employee profiles, primary PCs/workstations, or primarily responsible servers."]:
+                        ) -> Annotated[List[Dict[
+        str, Any]], "A list of all CIs associated with the user, including employee profiles, primary PCs/workstations, or primarily responsible servers."]:
         """
         [F. User/Responsible Person Query]: Retrieves a list of all configuration items (CIs) primarily used by or responsible for by a specific user.
         This interface is used for user-related security incidents (such as phishing, credential leakage) to quickly locate all the user's related assets for isolation or forensics.
         If the associated CI or user profile cannot be found, a LookupError is thrown.
         """
         if not user_id:
-            raise ValueError("User ID cannot be empty.")
+            return [{"error": "User ID cannot be empty."}]
 
         matching_cis = []
         found_profile = False
@@ -334,7 +341,7 @@ class CMDB(object):
                 })
 
         if not matching_cis and not found_profile:
-            raise LookupError(f"No CI found associated with user_id: {user_id}")
+            return [{"error": f"No CI found associated with user_id: {user_id}"}]
 
         return matching_cis
 
@@ -349,7 +356,8 @@ cmdb_instance = CMDB(EXTENDED_CMDB_DATA)
 def get_ci_context_tool(
         identifier_type: Annotated[str, "The type of identifier used for the query, accepts 'ip_address', 'hostname', 'mac_address', 'ci_id' or 'user_id'"],
         identifier_value: Annotated[str, "The specific value of the identifier, for example '192.168.10.5' or 'prod-web-01'"]
-) -> Annotated[Dict[str, Any], "The complete dictionary data of a single matched CI, including hundreds of attributes such as business criticality, owner team, etc."]:
+) -> Annotated[
+    Dict[str, Any], "The complete dictionary data of a single matched CI, including hundreds of attributes such as business criticality, owner team, etc."]:
     """
     Retrieves the complete contextual information of a single configuration item (CI) based on an exact identifier (IP, hostname, CI ID, or user ID).
     This interface is used to quickly associate technical indicators in alarms with specific business assets when a security incident occurs.
@@ -370,7 +378,8 @@ def fuzzy_search_ci_tool(
 
 def get_cis_by_software_tool(
         software_name: Annotated[str, "The name of the software to find, for example 'nginx' or 'java'"],
-        version: Annotated[Optional[str], "Optional software version number, for example '11' or '1.20.1'. If not provided, all versions will be matched."] = None
+        version: Annotated[
+            Optional[str], "Optional software version number, for example '11' or '1.20.1'. If not provided, all versions will be matched."] = None
 ) -> Annotated[List[Dict[str, Any]], "A list of CIs running the specified software, including CI ID, IP address, CI type, and business criticality."]:
     """
     Retrieves a list of configuration items (CIs) running a specific software or software version.
@@ -392,7 +401,8 @@ def get_cis_by_port_tool(
 
 def get_cis_by_service_tool(
         service_id: Annotated[str, "The business service ID to query, for example 'SVC-ECOM-001'"]
-) -> Annotated[List[Dict[str, Any]], "A list of all underlying CIs that support the business service, including CI ID, IP address, CI type, and business criticality."]:
+) -> Annotated[
+    List[Dict[str, Any]], "A list of all underlying CIs that support the business service, including CI ID, IP address, CI type, and business criticality."]:
     """
     Retrieves a list of all underlying configuration items (CIs) that support a specific critical business service.
     This interface is used for advanced impact analysis to quickly find all related servers, databases, and cloud instances when a business service alarm occurs.
@@ -402,12 +412,10 @@ def get_cis_by_service_tool(
 
 def get_cis_by_user_tool(
         user_id: Annotated[str, "The user ID to query, for example 'user_a'"]
-) -> Annotated[List[Dict[str, Any]], "A list of all CIs associated with the user, including employee profiles, primary PCs/workstations, or primarily responsible servers."]:
+) -> Annotated[List[
+    Dict[str, Any]], "A list of all CIs associated with the user, including employee profiles, primary PCs/workstations, or primarily responsible servers."]:
     """
     Retrieves a list of all configuration items (CIs) primarily used by or responsible for by a specific user.
     This interface is used for user-related security incidents (such as phishing, credential leakage) to quickly locate all the user's related assets for isolation or forensics.
     """
     return cmdb_instance.get_cis_by_user(user_id)
-
-
-

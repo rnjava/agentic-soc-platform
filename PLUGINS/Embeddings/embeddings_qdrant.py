@@ -141,7 +141,7 @@ class EmbeddingsAPI(object):
         #  组合结果并排序
         scored_docs = []
         for i, doc in enumerate(initial_docs):
-            # 手动将分数注入 metadata 供后续使用，并同时返回元组
+            # 手动将分数注入 metadata 供后续使用,并同时返回元组
             doc.metadata["rerank_score"] = float(scores[i])
             scored_docs.append((doc, float(scores[i])))
 
