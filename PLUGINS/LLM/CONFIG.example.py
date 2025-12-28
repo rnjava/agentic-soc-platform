@@ -32,7 +32,13 @@ LLM_CONFIGS = [
         "api_key": 'AIXXXX',
         "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
         "model": "gemini-2.5-flash",
-        "proxy": "http://127.0.0.1:7890",  # "http://192.168.1.100:3128", "socks5://192.168.1.100:7890"
+        # 支持代理格式
+        # Support Proxy format
+        # HTTP: http://192.168.1.100:3128
+        # HTTP with username / password: http://user:pass@192.168.1.100:3128
+        # SOCKS5: socks5://192.168.1.100:1080
+        # SOCKS5 with username / password: socks5://user:pass@192.168.1.100:1080
+        "proxy": "http://127.0.0.1:7890",
         "tags": ["fast", "function_calling", "structured_output"]
     },
     {
