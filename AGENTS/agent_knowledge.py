@@ -28,9 +28,9 @@ class AgentKnowledge(object):
         result_all = []
         docs_qdrant = embedding_api_singleton_qdrant.search_documents_with_rerank(collection_name=Knowledge.COLLECTION_NAME, query=query, k=10, top_n=3)
         logger.debug(docs_qdrant)
-        for doc, score in docs_qdrant:
+        for doc in docs_qdrant:
             doc: Document
-            if score >= threshold:
+            if doc.metadata["rerank_score"] >= threshold:
                 result_all.append(doc.page_content)
 
         if MEM_ZERO_USE:

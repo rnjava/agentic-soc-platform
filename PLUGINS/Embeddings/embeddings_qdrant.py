@@ -143,10 +143,10 @@ class EmbeddingsAPI(object):
         for i, doc in enumerate(initial_docs):
             # 手动将分数注入 metadata 供后续使用,并同时返回元组
             doc.metadata["rerank_score"] = float(scores[i])
-            scored_docs.append((doc, float(scores[i])))
+            scored_docs.append(doc)
 
         # 按分数从大到小排序
-        scored_docs.sort(key=lambda x: x[1], reverse=True)
+        scored_docs.sort(key=lambda x: x.metadata["rerank_score"], reverse=True)
 
         # 5. 返回前 top_n 个
         return scored_docs[:top_n]
