@@ -16,7 +16,7 @@ from Lib.baseapi import BaseAPI
 from Lib.llmapi import AgentState
 from Lib.log import logger
 from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Notice
-from PLUGINS.SIRP.sirpapi import PlaybookMessage, PlaybookStatusType
+from PLUGINS.SIRP.sirpapi import Message, PlaybookStatusType
 
 
 class BasePlaybook(BaseAPI):
@@ -138,7 +138,7 @@ class LanggraphPlaybook(BasePlaybook):
                 {"id": "content", "value": message.content},
                 {"id": "json", "value": None},
             ]
-        row_id = PlaybookMessage.create(fields)
+        row_id = Message.create(fields)
         return row_id
 
     # langgraph interface

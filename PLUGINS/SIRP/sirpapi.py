@@ -462,20 +462,25 @@ class Knowledge(object):
         return result
 
 
-class PlaybookMessage(object):
-    WORKSHEET_ID = "playbook_message"
+class Message(object):
+    WORKSHEET_ID = "message"
 
     def __init__(self):
         pass
 
     @staticmethod
+    def list(filter: dict):
+        result = WorksheetRow.list(Message.WORKSHEET_ID, filter, include_system_fields=False)
+        return result
+
+    @staticmethod
     def create(fields: list):
-        row_id = WorksheetRow.create(PlaybookMessage.WORKSHEET_ID, fields)
+        row_id = WorksheetRow.create(Message.WORKSHEET_ID, fields)
         return row_id
 
     @staticmethod
     def update(row_id, fields: list):
-        row_id = WorksheetRow.update(PlaybookMessage.WORKSHEET_ID, row_id, fields)
+        row_id = WorksheetRow.update(Message.WORKSHEET_ID, row_id, fields)
         return row_id
 
 
