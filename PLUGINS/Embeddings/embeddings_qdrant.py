@@ -26,6 +26,8 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 logger.info(f"Using device for embeddings and reranker: {device}")
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+SIRP_KNOWLEDGE_COLLECTION = "SIRP_KNOWLEDGE_COLLECTION"
+
 
 class EmbeddingsAPI(object):
 

@@ -4,9 +4,8 @@ from typing import Annotated
 from langchain_core.documents import Document
 
 from Lib.log import logger
-from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
+from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant, SIRP_KNOWLEDGE_COLLECTION
 from PLUGINS.Mem0.CONFIG import USE as MEM_ZERO_USE
-from PLUGINS.SIRP.sirpapi import Knowledge
 
 if MEM_ZERO_USE:
     from PLUGINS.Mem0.mem_zero import mem_zero_singleton
@@ -26,7 +25,7 @@ class AgentKnowledge(object):
         logger.debug(f"knowledge search : {query}")
         threshold = 0.8
         result_all = []
-        docs_qdrant = embedding_api_singleton_qdrant.search_documents_with_rerank(collection_name=Knowledge.COLLECTION_NAME, query=query, k=10, top_n=3)
+        docs_qdrant = embedding_api_singleton_qdrant.search_documents_with_rerank(collection_name=SIRP_KNOWLEDGE_COLLECTION, query=query, k=10, top_n=3)
         logger.debug(docs_qdrant)
         for doc in docs_qdrant:
             doc: Document
@@ -34,7 +33,7 @@ class AgentKnowledge(object):
                 result_all.append(doc.page_content)
 
         if MEM_ZERO_USE:
-            result = mem_zero_singleton.search_mem(user_id=Knowledge.COLLECTION_NAME, query=query, limit=3)
+            result = mem_zero_singleton.search_mem(user_id=SIRP_KNOWLEDGE_COLLECTION, query=query, limit=3)
             results = result.get("results", [])
             relations = result.get("relations", [])
             logger.debug(results)

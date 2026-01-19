@@ -96,7 +96,7 @@ class BaseSystemModel(BaseModel):
 
 
 class MessageModel(BaseSystemModel):
-    playbook: List[Union[PlaybookModel, str]] = Field(..., description="所属Playbook的唯一行ID")
+    playbook: Optional[List[Union[PlaybookModel, str]]] = Field(default="", description="所属Playbook的唯一行ID")
     node: Optional[str] = Field(default="", description="消息来源的节点名称或ID")
     content: Optional[str] = Field(default="", description="消息的文本内容")
     data: Optional[str] = Field(default="", description="消息的JSON格式内容，通常用于工具调用和返回")
@@ -127,20 +127,27 @@ class PlaybookModel(BaseSystemModel):
     messages: Optional[List[Union[MessageModel, str]]] = Field(default=None, description="Playbook执行过程中的所有消息记录，构成对话历史")
 
 
+class KnowledgeAction(StrEnum):
+    STORE = 'Store'
+    REMOVE = 'Remove'
+    DONE = 'Done'
+
+
 class KnowledgeModel(BaseSystemModel):
-    title: str = Field(..., description="知识库条目的标题")
+    title: Optional[str] = Field(default="", description="知识库条目的标题")
     body: Optional[str] = Field(default="", description="知识库条目的正文内容")
     using: Optional[bool] = Field(default=False, description="当前是否正在使用该知识")
-    action: Optional[Literal["Store", "Remove", "Done", None]] = Field(default=None, description="对知识库条目执行的动作")
-    source: Literal["Manual", "Case"] = Field(..., description="知识的来源，'Manual'表示手动创建，'Case'表示从安全事件中提取")
+    action: Optional[KnowledgeAction] = Field(default=None, description="对知识库条目执行的动作")
+    source: Optional[Literal["Manual", "Case"]] = Field(default=None, description="知识的来源，'Manual'表示手动创建，'Case'表示从安全事件中提取")
+    tags: Optional[List[str]] = Field(default=[], description="与知识条目相关的标签列表", json_schema_extra={"type": 2})
 
 
 class EnrichmentModel(BaseSystemModel):
-    name: str = Field(..., description="富化信息的名称或标题")
-    type: str = Field(..., description="富化信息的类型", json_schema_extra={"type": 2})
-    provider: str = Field(..., description="富化信息的提供方，例如威胁情报厂商", json_schema_extra={"type": 2})
+    name: Optional[str] = Field(default="", description="富化信息的名称或标题")
+    type: Optional[str] = Field(default="Other", description="富化信息的类型", json_schema_extra={"type": 2})
+    provider: Optional[str] = Field(default="Other", description="富化信息的提供方，例如威胁情报厂商", json_schema_extra={"type": 2})
     created_time: Optional[Union[datetime, str]] = Field(default=None, description="富化信息创建的时间")
-    value: str = Field(..., description="富化信息的具体值")
+    value: Optional[str] = Field(default="", description="富化信息的具体值")
     src_url: Optional[str] = Field(default="", description="富化信息的来源URL，方便溯源")
     desc: Optional[str] = Field(default="", description="对富化信息的简要描述")
     data: Optional[str] = Field(default="", description="富化信息的详细数据，通常是JSON字符串")
@@ -151,8 +158,8 @@ class TicketModel(BaseSystemModel):
         default=None, description="外部工单系统中的状态")
     type: Optional[Literal['Other', 'Jira', 'ServiceNow', None]] = Field(default=None, description="外部工单系统的类型")
     title: Optional[str] = Field(default="", description="工单的标题")
-    uid: str = Field(..., description="工单在外部系统中的唯一ID")
-    src_url: str = Field(..., description="访问该工单的URL")
+    uid: Optional[str] = Field(default="", description="工单在外部系统中的唯一ID")
+    src_url: Optional[str] = Field(default="", description="访问该工单的URL")
 
 
 class ArtifactModel(BaseSystemModel):
@@ -263,7 +270,7 @@ class AlertModel(BaseSystemModel):
 
 
 class CaseModel(BaseSystemModel):
-    title: str = Field(..., description="安全事件的标题, 应能简明扼要地概括事件的核心内容")
+    title: Optional[str] = Field(default="", description="安全事件的标题, 应能简明扼要地概括事件的核心内容")
     severity: Optional[Literal["Unknown", "Informational", "Low", "Medium", "High", "Critical", "Fatal", "Other", None]] = Field(default=None,
                                                                                                                                  description="由分析师评估或重新定义的事件严重性")
     impact: Optional[Literal["Unknown", "Low", "Medium", "High", "Critical", "Other", None]] = Field(default=None, description="由分析师评估的事件实际影响")

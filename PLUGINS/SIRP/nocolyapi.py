@@ -152,13 +152,13 @@ class WorksheetRow(object):
         response_data = response.json()
         if response_data.get("success"):
             row = response_data.get("data")
-            data_new = WorksheetRow._format_row(row, fields, include_system_fields)
+            data_new = WorksheetRow._format_input_row(row, fields, include_system_fields)
             return data_new
         else:
             raise Exception(f"error_code: {response_data.get('error_code')} error_msg: {response_data.get('error_msg')}")
 
     @staticmethod
-    def _format_row(row, fields, include_system_fields=True) -> dict:
+    def _format_input_row(row, fields, include_system_fields=True) -> dict:
         data_new = {}
         for alias in row:
             if alias in SYSTEM_FIELDS:
@@ -171,11 +171,11 @@ class WorksheetRow(object):
                 if field is None:
                     logger.warning(f"field {alias} not found in fields")
                     continue
-                data_new[alias] = WorksheetRow._format_value(field, row[alias])
+                data_new[alias] = WorksheetRow._format_input_value(field, row[alias])
         return data_new
 
     @staticmethod
-    def _format_value(field, value):
+    def _format_input_value(field, value):
         field_type = field.get("type")
         sub_type = field.get("subType")
         if field_type in ["MultipleSelect"]:
@@ -200,6 +200,33 @@ class WorksheetRow(object):
             return bool(int(value))
         else:
             return value
+
+    @staticmethod
+    def _format_output_value(fields_config, fields):
+        fields_new = []
+        for field in fields:
+            field_key = field.get("id")
+            field_config = fields_config.get(field_key)
+            if not field_config:
+                for f in fields_config.values():
+                    if f.get("id") == field_key:
+                        field_config = f
+                        break
+            if not field_config:
+                continue
+
+            field_type = field_config.get("type")
+            sub_type = field_config.get("subType")
+            value = field.get("value")
+
+            if field_type in ['Checkbox']:
+                fields_new.append({
+                    "id": field_key,
+                    "value": 1 if value else 0
+                })
+            else:
+                fields_new.append(field)
+        return fields_new
 
     @staticmethod
     def translate_filter_names_to_ids(filter_data, fields_config):
@@ -262,7 +289,7 @@ class WorksheetRow(object):
                 break
 
             for row in rows:
-                formatted_row = WorksheetRow._format_row(row, fields_config, include_system_fields)
+                formatted_row = WorksheetRow._format_input_row(row, fields_config, include_system_fields)
                 all_rows.append(formatted_row)
 
             if len(all_rows) >= total_count:
@@ -274,12 +301,13 @@ class WorksheetRow(object):
 
     @staticmethod
     def create(worksheet_id: str, fields: List, trigger_workflow: bool = True):
-        fields = [
-            field for field in fields if field.get("value") is not None and field.get("value") != ""
-        ]
+        # fields = [
+        #     field for field in fields if field.get("value") is not None and field.get("value") != ""
+        # ]
 
         url = f"{SIRP_URL}/api/v3/app/worksheets/{worksheet_id}/rows"
-
+        fields_config = Worksheet.get_fields(worksheet_id)
+        fields = WorksheetRow._format_output_value(fields_config, fields)
         data = {
             "triggerWorkflow": trigger_workflow,
             "fields": fields
@@ -302,9 +330,12 @@ class WorksheetRow(object):
     @staticmethod
     def update(worksheet_id: str, row_id: str, fields: List, trigger_workflow: bool = True):
 
-        fields = [
-            field for field in fields if field.get("value") is not None
-        ]
+        # fields = [
+        #     field for field in fields if field.get("value") is not None
+        # ]
+
+        fields_config = Worksheet.get_fields(worksheet_id)
+        fields = WorksheetRow._format_output_value(fields_config, fields)
         url = f"{SIRP_URL}/api/v3/app/worksheets/{worksheet_id}/rows/{row_id}"
 
         data = {
@@ -323,7 +354,7 @@ class WorksheetRow(object):
             raise Exception(f"error_code: {response_data.get('error_code')} error_msg: {response_data.get('error_msg')}")
 
     @staticmethod
-    def delete(worksheet_id: str, row_ids: list, trigger_workflow: bool = True):
+    def delete(worksheet_id: str, row_ids: List, trigger_workflow: bool = True):
 
         url = f"{SIRP_URL}/api/v3/app/worksheets/{worksheet_id}/rows/batch"
 
@@ -368,7 +399,7 @@ class WorksheetRow(object):
             rows = response_data.get("data").get("rows")
             rows_new = []
             for row in rows:
-                data_new = WorksheetRow._format_row(row, fields, include_system_fields)
+                data_new = WorksheetRow._format_input_row(row, fields, include_system_fields)
                 rows_new.append(data_new)
             return rows_new
         else:

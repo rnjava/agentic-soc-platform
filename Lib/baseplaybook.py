@@ -17,7 +17,7 @@ from Lib.llmapi import AgentState
 from Lib.log import logger
 from PLUGINS.SIRP.sirpapi import Message
 from PLUGINS.SIRP.sirpapi import Playbook, Notice
-from PLUGINS.SIRP.sirptype import PlaybookModel, PlaybookJobStatus
+from PLUGINS.SIRP.sirptype import PlaybookModel, PlaybookJobStatus, MessageModel
 
 
 class BasePlaybook(BaseAPI):
@@ -74,72 +74,40 @@ class LanggraphPlaybook(BasePlaybook):
         checkpointer = MemorySaver()
         return checkpointer
 
-    def add_message_to_playbook(self, message: BaseMessage | BaseModel, playbook_rowid=None, node=None):
-        if playbook_rowid is None:
-            playbook_rowid = self.param_rowid
+    def add_message_to_playbook(self, message: BaseMessage | BaseModel, node=None):
 
+        message_model = MessageModel()
+        message_model.playbook = [self._playbook_model.rowid]
+        message_model.node = node
+
+        if isinstance(message, BaseModel):
+            message_model.content = None
+        else:
+            message_model.content = message.content
         if isinstance(message, SystemMessage):
-            fields = [
-                {"id": "type", "value": "SystemMessage"},
-                {"id": "node", "value": node},
-                {"id": "playbook_rowid", "value": playbook_rowid},
-                {"id": "content", "value": message.content},
-                {"id": "json", "value": None},
-            ]
+            message_model.type = "SystemMessage"
         elif isinstance(message, HumanMessage):
-            fields = [
-                {"id": "type", "value": "HumanMessage"},
-                {"id": "node", "value": node},
-                {"id": "playbook_rowid", "value": playbook_rowid},
-                {"id": "content", "value": message.content},
-                {"id": "json", "value": None},
-            ]
+            message_model.type = "HumanMessage"
         elif isinstance(message, AIMessage):
             if hasattr(message, 'tool_calls') and message.tool_calls:
-                fields = [
-                    {"id": "type", "value": "AIMessage"},
-                    {"id": "node", "value": node},
-                    {"id": "playbook_rowid", "value": playbook_rowid},
-                    {"id": "content", "value": message.content},
-                    {"id": "json", "value": json.dumps(message.tool_calls)},
-                ]
+                message_model.type = "AIMessage"
+                message_model.data = json.dumps(message.tool_calls)
             else:
-                fields = [
-                    {"id": "type", "value": "AIMessage"},
-                    {"id": "node", "value": node},
-                    {"id": "playbook_rowid", "value": playbook_rowid},
-                    {"id": "content", "value": message.content},
-                    {"id": "json", "value": None},
-                ]
+                message_model.type = "AIMessage"
         elif isinstance(message, ToolMessage):
             try:
                 json_data = {"name": message.name, "tool_call_id": message.tool_call_id, "result": json.loads(message.content)}
             except json.decoder.JSONDecodeError:
                 json_data = {"name": message.name, "tool_call_id": message.tool_call_id, "result": message.content}
-
-            fields = [
-                {"id": "type", "value": "ToolMessage"},
-                {"id": "node", "value": node},
-                {"id": "playbook_rowid", "value": playbook_rowid},
-                {"id": "json", "value": json.dumps(json_data)},
-            ]
+            message_model.type = "ToolMessage"
+            message_model.data = json.dumps(json_data)
         elif isinstance(message, BaseModel):
-            fields = [
-                {"id": "type", "value": "AIMessage"},
-                {"id": "node", "value": node},
-                {"id": "playbook_rowid", "value": playbook_rowid},
-                {"id": "content", "value": None},
-                {"id": "json", "value": message.model_dump_json()},
-            ]
+            message_model.type = "AIMessage"
+            message_model.data = message.model_dump_json()
         else:
-            fields = [
-                {"id": "role", "value": message.type},
-                {"id": "node", "value": node},
-                {"id": "playbook_rowid", "value": playbook_rowid},
-                {"id": "content", "value": message.content},
-                {"id": "json", "value": None},
-            ]
-        row_id = Message.create(fields)
+            logger.warning(f"Unknown message type: {message.type}.")
+
+        row_id = Message.create(message_model)
         return row_id
 
     # langgraph interface

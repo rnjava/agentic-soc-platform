@@ -14,11 +14,11 @@ from Lib.engine import Engine
 from Lib.log import logger
 from Lib.playbookloader import PlaybookLoader
 from Lib.xcache import Xcache
-from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant
+from PLUGINS.Embeddings.embeddings_qdrant import embedding_api_singleton_qdrant, SIRP_KNOWLEDGE_COLLECTION
 from PLUGINS.Mem0.CONFIG import USE as MEM_ZERO_USE
 from PLUGINS.Redis.redis_stream_api import RedisStreamAPI
-from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Knowledge, KnowledgeAction
-from PLUGINS.SIRP.sirptype import PlaybookJobStatus
+from PLUGINS.SIRP.sirpapi import Playbook as SIRPPlaybook, Knowledge
+from PLUGINS.SIRP.sirptype import PlaybookJobStatus, KnowledgeAction
 
 if MEM_ZERO_USE:
     from PLUGINS.Mem0.mem_zero import mem_zero_singleton
@@ -147,53 +147,46 @@ class MainMonitor(object):
 
     @staticmethod
     def subscribe_knowledge_action():
-        records = Knowledge.get_undone_actions()
-        if records:
-            for one_record in records:
-                action = one_record.get("action")
-                using = one_record.get("using")
-                row_id = one_record.get("rowid")
-                title = one_record.get("title")
-                body = one_record.get("body")
-
-                payload_content = f"# {title}\n\n{body}"
-
-                if action == KnowledgeAction.STORE:
-                    logger.info(f"Knowledge storing,rowid: {row_id}")
+        models = Knowledge.list_undone_actions()
+        if models:
+            for model in models:
+                payload_content = f"# {model.title}\n\n{model.body}"
+                if model.action == KnowledgeAction.STORE:
+                    logger.info(f"Knowledge storing,rowid: {model.rowid}")
                     try:
-                        result = embedding_api_singleton_qdrant.add_document(Knowledge.COLLECTION_NAME, row_id, payload_content, {"rowid": row_id})
+                        doc_id = embedding_api_singleton_qdrant.add_document(SIRP_KNOWLEDGE_COLLECTION, model.rowid, payload_content, {"rowid": model.rowid})
                     except Exception as E:
                         logger.exception(E)
 
                     try:
                         if MEM_ZERO_USE:
-                            result = mem_zero_singleton.add_mem(user_id=Knowledge.COLLECTION_NAME, run_id=row_id, content=payload_content,
-                                                                metadata={"rowid": row_id})
+                            result = mem_zero_singleton.add_mem(user_id=SIRP_KNOWLEDGE_COLLECTION, run_id=model.rowid, content=payload_content,
+                                                                metadata={"rowid": model.rowid})
                     except Exception as E:
                         logger.exception(E)
 
-                    action = KnowledgeAction.DONE
-                    using = 1
-                    logger.info(f"Knowledge stored,rowid: {row_id}")
-                elif action == KnowledgeAction.REMOVE:
-                    logger.info(f"Knowledge removing,rowid: {row_id}")
+                    model.action = KnowledgeAction.DONE
+                    model.using = True
+                    logger.info(f"Knowledge stored,rowid: {model.rowid}")
+                elif model.action == KnowledgeAction.REMOVE:
+                    logger.info(f"Knowledge removing,rowid: {model.rowid}")
                     try:
-                        result = embedding_api_singleton_qdrant.delete_document(Knowledge.COLLECTION_NAME, row_id)
+                        result = embedding_api_singleton_qdrant.delete_document(SIRP_KNOWLEDGE_COLLECTION, model.rowid)
                     except Exception as E:
                         logger.exception(E)
 
                     try:
                         if MEM_ZERO_USE:
-                            result = mem_zero_singleton.delete_mem(user_id=Knowledge.COLLECTION_NAME, run_id=row_id)
+                            result = mem_zero_singleton.delete_mem(user_id=SIRP_KNOWLEDGE_COLLECTION, run_id=model.rowid)
                     except Exception as E:
                         logger.exception(E)
 
-                    action = KnowledgeAction.DONE
-                    using = 0
-                    logger.info(f"Knowledge removed,rowid: {row_id}")
+                    model.action = KnowledgeAction.DONE
+                    model.using = False
+                    logger.info(f"Knowledge removed,rowid: {model.rowid}")
                 else:
-                    logger.error(f"Unknown knowledge action: {action}")
+                    logger.error(f"Unknown knowledge action: {model.action}")
                     continue
 
                 # update status to Done
-                row_id = Knowledge.update_action_and_using(row_id, action, using)
+                row_id = Knowledge.update(model)

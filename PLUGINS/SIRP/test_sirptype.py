@@ -2,8 +2,8 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from PLUGINS.SIRP.nocolyapi import Group, Condition, Operator
-from PLUGINS.SIRP.sirpapi import Enrichment, Artifact, Alert, Playbook
-from PLUGINS.SIRP.sirptype import CaseModel, AlertModel, ArtifactModel, EnrichmentModel, TicketModel
+from PLUGINS.SIRP.sirpapi import Enrichment, Artifact, Alert, Knowledge
+from PLUGINS.SIRP.sirptype import CaseModel, AlertModel, ArtifactModel, EnrichmentModel, TicketModel, KnowledgeModel
 
 now = datetime.now(timezone.utc)
 past_10m = now - timedelta(minutes=10)
@@ -653,5 +653,10 @@ if __name__ == "__main__":
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ASP.settings")
     django.setup()
-    models = Playbook.list_pending_playbooks()
-    print(models)
+    # models = Knowledge.list_undone_actions()
+    model = KnowledgeModel()
+    model.rowid = "32284c3d-e4c1-40b1-b4a3-1bf2daa0b6c5"
+    model.using = False
+    model.source = "Case"
+    model.tags = ["test", "updated"]
+    Knowledge.update_or_create(model)

@@ -1,13 +1,12 @@
-from enum import StrEnum
 from typing import List, Dict, Literal, Union
 
 import requests
 
 from PLUGINS.SIRP.CONFIG import SIRP_NOTICE_WEBHOOK
-from PLUGINS.SIRP.base_entity import BaseWorksheetEntity, BaseSimpleEntity
-from PLUGINS.SIRP.nocolyapi import OptionSet, Group, Condition, Operator
+from PLUGINS.SIRP.base_entity import BaseWorksheetEntity
+from PLUGINS.SIRP.nocolyapi import Group, Condition, Operator
 from PLUGINS.SIRP.sirptype import EnrichmentModel, ArtifactModel, AlertModel, CaseModel, TicketModel, MessageModel, PlaybookModel, PlaybookJobStatus, \
-    AccountModel
+    AccountModel, KnowledgeAction, KnowledgeModel
 
 
 class Enrichment(BaseWorksheetEntity[EnrichmentModel]):
@@ -147,48 +146,28 @@ class Playbook(BaseWorksheetEntity[PlaybookModel]):
         return cls.list(filter_model, lazy_load=True)
 
 
-class KnowledgeAction(StrEnum):
-    STORE = 'Store'
-    REMOVE = 'Remove'
-    DONE = 'Done'
-
-
 KnowledgeUsing = Literal[0, 1]
 
 
-class Knowledge(BaseSimpleEntity):
-    """Knowledge 实体类"""
+class Knowledge(BaseWorksheetEntity[KnowledgeModel]):
+    """PlaybookLoader 实体类"""
     WORKSHEET_ID = "knowledge"
-    COLLECTION_NAME = "sirp_knowledge"
+    MODEL_CLASS = KnowledgeModel
 
     @classmethod
-    def update_action_and_using(cls, row_id: str, action: KnowledgeAction, using: KnowledgeUsing) -> str:
-        """更新action和using"""
-        fields = [
-            {"id": "action", "value": action},
-            {"id": "using", "value": using},
-        ]
-        return cls.update(row_id, fields)
-
-    @classmethod
-    def get_undone_actions(cls) -> List[Dict]:
+    def list_undone_actions(cls) -> List[KnowledgeModel]:
         """获取未完成的actions"""
-        options = OptionSet.get("knowledge_action")
-        action_list = [opt.get("key") for opt in options if opt.get("value") != "Done"]
-
-        filter_dict = {
-            "type": "group",
-            "logic": "AND",
-            "children": [
-                {
-                    "type": "condition",
-                    "field": "action",
-                    "operator": "in",
-                    "value": action_list
-                }
+        filter_model = Group(
+            logic="AND",
+            children=[
+                Condition(
+                    field="action",
+                    operator=Operator.NOT_IN,
+                    value=[KnowledgeAction.DONE]
+                )
             ]
-        }
-        return cls.list(filter_dict)
+        )
+        return cls.list(filter_model)
 
 
 class Notice(object):
