@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timedelta, timezone
 
 from PLUGINS.SIRP.nocolyapi import Group, Condition, Operator
-from PLUGINS.SIRP.sirpapi import Enrichment, Artifact
+from PLUGINS.SIRP.sirpapi import Enrichment, Artifact, Alert
 from PLUGINS.SIRP.sirptype import CaseModel, AlertModel, ArtifactModel, EnrichmentModel, TicketModel
 
 now = datetime.now(timezone.utc)
@@ -610,6 +610,7 @@ if __name__ == "__main__":
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ASP.settings")
     django.setup()
+    rowid = Alert.get("0949a2df-7592-44f6-ac29-73994152aaa6")
 
     rowid = Artifact.get("0e4527f9-a0b9-4d71-a805-95a7d8d3267e")
 

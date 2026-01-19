@@ -219,7 +219,8 @@ class AlertModel(BaseSystemModel):
     product_feature: Optional[str] = Field(default=None, description="产生告警的产品具体功能模块")
 
     policy_name: Optional[str] = Field(default="", description="触发告警的策略名称")
-    policy_type: Optional[Literal["Identity Policy", "Resource Policy", "Service Control Policy", None]] = Field(default=None, description="触发告警的策略类型")
+    policy_type: Optional[Literal["Identity Policy", "Resource Policy", "Service Control Policy", "Other", None]] = Field(default=None,
+                                                                                                                          description="触发告警的策略类型")
     policy_desc: Optional[str] = Field(default="", description="触发告警的策略描述")
 
     risk_level: Optional[Literal["Info", "Low", "Medium", "High", "Critical", "Other", None]] = Field(default=None, description="评估的风险等级")
@@ -242,7 +243,7 @@ class AlertModel(BaseSystemModel):
     summary_ai: Optional[str] = Field(default="", description="AI提供的汇总摘要")
 
     # 反向关联
-    case: Optional[str] = Field(default=None, description="此告警关联到的安全事件（Case）(只保留rowid,避免循环引用)")
+    case: Optional[List[Union[CaseModel, str]]] = Field(default=None, description="此告警关联到的安全事件（Case）(只保留rowid,避免循环引用)")
 
     # 关联表
     artifacts: Optional[List[Union[ArtifactModel, str]]] = Field(default=[], description="从告警中提取出的实体（Artifact）列表")
