@@ -236,11 +236,15 @@ class AlertModel(BaseSystemModel):
 
     raw_data: Optional[str] = Field(default="", description="原始告警日志，通常为JSON格式的字符串")
 
+    attachments: Optional[List[Union[AttachmentModel, str]]] = Field(default=[], description="告警的附件")
+
+    # AI字段
     summary_ai: Optional[str] = Field(default="", description="AI提供的汇总摘要")
 
+    # 反向关联
+    case: Optional[str] = Field(default=None, description="此告警关联到的安全事件（Case）(只保留rowid,避免循环引用)")
+
     # 关联表
-    case: Optional[Union[CaseModel, str]] = Field(default=None, description="此告警关联到的安全事件（Case）")
-    attachments: Optional[List[Union[AttachmentModel, str]]] = Field(default=[], description="告警的附件")
     artifacts: Optional[List[Union[ArtifactModel, str]]] = Field(default=[], description="从告警中提取出的实体（Artifact）列表")
     enrichments: Optional[List[Union[EnrichmentModel, str]]] = Field(default=[], description="对整个告警进行的富化结果")
 
@@ -269,6 +273,7 @@ class CaseModel(BaseSystemModel):
     assignee_l1: Optional[AccountModel] = Field(default=None, description="分配给L1一线分析师")
     acknowledged_time: Optional[Union[datetime, str]] = Field(default=None, description="L1分析师首次确认接收事件的时间")
     comment: Optional[str] = Field(default="", description="分析师对整个事件的评论或处置记录")
+    attachments: Optional[List[Union[AttachmentModel, str]]] = Field(default=[], description="与事件相关的附件列表")
 
     assignee_l2: Optional[AccountModel] = Field(default=None, description="分配或升级给L2二线分析师")
     assignee_l3: Optional[AccountModel] = Field(default=None, description="分配或升级给L3专家分析师")
@@ -300,7 +305,6 @@ class CaseModel(BaseSystemModel):
     respond_time: Optional[Any] = Field(default=None, description="事件处置完成时间(closed_time), 用于计算MTTR")
 
     # 关联表
-    attachments: Optional[List[Union[AttachmentModel, str]]] = Field(default=[], description="与事件相关的附件列表")
     tickets: Optional[List[Union[TicketModel, str]]] = Field(default=[], description="与此事件关联的外部工单列表")
     enrichments: Optional[List[Union[EnrichmentModel, str]]] = Field(default=[], description="对整个事件进行的富化结果")
     alerts: Optional[List[Union[AlertModel, str]]] = Field(default=[], description="合并到此事件中的告警列表")

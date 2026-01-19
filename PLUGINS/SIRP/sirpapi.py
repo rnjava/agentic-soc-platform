@@ -1,73 +1,13 @@
-import os
 from enum import StrEnum
-from typing import TypedDict, List, Optional, Union, Dict, Any, NotRequired, Literal
+from typing import List, Dict, Any, Literal, Union
 
 import requests
 from pydantic import BaseModel
 
-from Lib.api import string_to_timestamp, get_current_time_str
 from Lib.log import logger
 from PLUGINS.SIRP.CONFIG import SIRP_NOTICE_WEBHOOK
-from PLUGINS.SIRP.grouprule import GroupRule
 from PLUGINS.SIRP.nocolyapi import WorksheetRow, OptionSet, Group, Condition, Operator
-from PLUGINS.SIRP.sirptype import EnrichmentModel, ArtifactModel
-
-
-class InputCase(TypedDict):
-    """
-    Need to be consistent with the SIRP Case table structure
-    If there are new fields in SIRP, they need to be added here
-    """
-    title: str
-    deduplication_key: str
-    case_status: str
-    created_date: str
-    tags: List[str]
-    severity: str
-    type: str
-    description: str
-    workbook: str
-
-    # AI fields
-    confidence_ai: NotRequired[str]
-    analysis_rationale_ai: NotRequired[str]
-    recommended_actions_ai: NotRequired[str]
-    recommended_actions_ai: NotRequired[List[str]]
-
-    alert: List[str]
-
-
-class InputAlert(TypedDict):
-    source: str
-    rule_id: str
-    rule_name: str
-    name: str
-    alert_date: str
-    created_date: str
-    tags: List[str]
-    severity: str
-    reference: NotRequired[str]
-    source_data_identifier: NotRequired[str]
-    description: str
-    summary_ai: NotRequired[Optional[Union[str, Dict[str, Any]]]]
-    artifact: List[Dict]
-    raw_log: NotRequired[Optional[Union[str, Dict[str, Any]]]]
-
-
-class InputArtifact(TypedDict):
-    type: str
-    value: str
-    enrichment: NotRequired[Dict[str, Any]]
-
-
-# def model_to_fields(model_instance: BaseModel) -> List[Dict[str, Any]]:
-#     fields = []
-#     model_dict = model_instance.model_dump(mode='json', exclude_unset=True)
-#
-#     for key, value in model_dict.items():
-#         fields.append({'id': key, 'value': value})
-#
-#     return fields
+from PLUGINS.SIRP.sirptype import EnrichmentModel, ArtifactModel, AlertModel, CaseModel, TicketModel
 
 
 def model_to_fields(model_instance: BaseModel) -> List[Dict[str, Any]]:
@@ -80,9 +20,6 @@ def model_to_fields(model_instance: BaseModel) -> List[Dict[str, Any]]:
             'value': value
         }
         if field_info and field_info.json_schema_extra:
-            # custom_type = field_info.json_schema_extra.get('type')
-            # if custom_type is not None:
-            #     field_item['type'] = custom_type
             field_item.update(field_info.json_schema_extra)
         fields.append(field_item)
     return fields
@@ -110,6 +47,24 @@ class Enrichment(object):
         return model_list
 
     @staticmethod
+    def list_by_rowids(rowids: Union[List[str], None], include_system_fields=True) -> Union[List[EnrichmentModel], List[str], None]:
+        if rowids is not None and rowids != []:
+            filter_model = Group(
+                logic="AND",
+                children=[
+                    Condition(
+                        field="rowid",
+                        operator=Operator.IN,
+                        value=rowids
+                    )
+                ]
+            )
+            enrichment_list = Enrichment.list(filter_model, include_system_fields=include_system_fields)
+            return enrichment_list
+        else:
+            return rowids
+
+    @staticmethod
     def update(model: EnrichmentModel) -> str:
         if model.rowid is not None:
             fields = model_to_fields(model)
@@ -117,6 +72,24 @@ class Enrichment(object):
         else:
             raise Exception("Enrichment rowid is None, cannot update.")
         return rowid
+
+    @staticmethod
+    def batch_update(model_list: List[Union[EnrichmentModel, str]]) -> Union[List[str], None]:
+        if model_list is not None:
+            rowids = []
+            for model in model_list:
+                if isinstance(model, str):
+                    rowids.append(model)  # just link
+                    continue
+                elif isinstance(model, EnrichmentModel):
+                    rowid = Enrichment.update_or_create(model)  # update or create record
+                    rowids.append(rowid)
+                else:
+                    raise Exception("Unsupported enrichment data type")
+
+            return rowids
+        else:
+            return model_list
 
     @staticmethod
     def create(model: EnrichmentModel) -> str:
@@ -134,6 +107,88 @@ class Enrichment(object):
         return rowid
 
 
+class Ticket(object):
+    WORKSHEET_ID = "ticket"
+
+    def __init__(self):
+        pass
+
+    @staticmethod
+    def get(rowid, include_system_fields=True) -> TicketModel:
+        result = WorksheetRow.get(Ticket.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
+        model = TicketModel(**result)
+        return model
+
+    @staticmethod
+    def list(model: Group, include_system_fields=True) -> List[TicketModel]:
+        filter = model.model_dump()
+        result = WorksheetRow.list(Ticket.WORKSHEET_ID, filter, include_system_fields=include_system_fields)
+        model_list = []
+        for one in result:
+            model_list.append(TicketModel(**one))
+        return model_list
+
+    @staticmethod
+    def list_by_rowids(rowids: Union[List[str], None], include_system_fields=True) -> Union[List[TicketModel], List[str], None]:
+        if rowids is not None and rowids != []:
+            filter_model = Group(
+                logic="AND",
+                children=[
+                    Condition(
+                        field="rowid",
+                        operator=Operator.IN,
+                        value=rowids
+                    )
+                ]
+            )
+            ticket_list = Ticket.list(filter_model, include_system_fields=include_system_fields)
+            return ticket_list
+        else:
+            return rowids
+
+    @staticmethod
+    def update(model: TicketModel) -> str:
+        if model.rowid is not None:
+            fields = model_to_fields(model)
+            rowid = WorksheetRow.update(Ticket.WORKSHEET_ID, model.rowid, fields)
+        else:
+            raise Exception("Ticket rowid is None, cannot update.")
+        return rowid
+
+    @staticmethod
+    def batch_update(model_list: List[Union[TicketModel, str]]) -> Union[List[str], None]:
+        if model_list is not None:
+            rowids = []
+            for model in model_list:
+                if isinstance(model, str):
+                    rowids.append(model)  # just link
+                    continue
+                elif isinstance(model, TicketModel):
+                    rowid = Ticket.update_or_create(model)  # update or create record
+                    rowids.append(rowid)
+                else:
+                    raise Exception("Unsupported ticket data type")
+
+            return rowids
+        else:
+            return model_list
+
+    @staticmethod
+    def create(model: TicketModel) -> str:
+        fields = model_to_fields(model)
+        rowid = WorksheetRow.create(Ticket.WORKSHEET_ID, fields)
+        return rowid
+
+    @staticmethod
+    def update_or_create(model: TicketModel) -> str:
+        fields = model_to_fields(model)
+        if model.rowid is None:
+            rowid = WorksheetRow.create(Ticket.WORKSHEET_ID, fields)
+        else:
+            rowid = WorksheetRow.update(Ticket.WORKSHEET_ID, model.rowid, fields)
+        return rowid
+
+
 class Artifact(object):
     WORKSHEET_ID = "artifact"
 
@@ -144,20 +199,9 @@ class Artifact(object):
     def get(rowid, include_system_fields=True) -> ArtifactModel:
         result = WorksheetRow.get(Artifact.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
         model = ArtifactModel(**result)
-        if model.enrichments is not None and model.enrichments != []:
-            # enrichments
-            filter_model = Group(
-                logic="AND",
-                children=[
-                    Condition(
-                        field="rowid",
-                        operator=Operator.IN,
-                        value=model.enrichments
-                    )
-                ]
-            )
-            enrichment_list = Enrichment.list(filter_model)
-            model.enrichments = enrichment_list
+
+        # enrichments
+        model.enrichments = Enrichment.list_by_rowids(model.enrichments)
 
         return model
 
@@ -168,40 +212,35 @@ class Artifact(object):
         artifact_list = []
         for artifact_data in result:
             artifact_model = ArtifactModel(**artifact_data)
-            if artifact_model.enrichments is not None and artifact_model.enrichments != []:
-                # enrichments
-                filter_model = Group(
-                    logic="AND",
-                    children=[
-                        Condition(
-                            field="rowid",
-                            operator=Operator.IN,
-                            value=artifact_model.enrichments
-                        )
-                    ]
-                )
-                enrichment_list = Enrichment.list(filter_model)
-                artifact_model.enrichments = enrichment_list
+
+            # enrichments
+            artifact_model.enrichments = Enrichment.list_by_rowids(artifact_model.enrichments)
+
             artifact_list.append(artifact_model)
         return artifact_list
 
     @staticmethod
+    def list_by_rowids(rowids: Union[List[str], None], include_system_fields=True) -> Union[List[ArtifactModel], List[str], None]:
+        if rowids is not None and rowids != []:
+            filter_model = Group(
+                logic="AND",
+                children=[
+                    Condition(
+                        field="rowid",
+                        operator=Operator.IN,
+                        value=rowids
+                    )
+                ]
+            )
+            artifact_list = Artifact.list(filter_model, include_system_fields=include_system_fields)
+            return artifact_list
+        else:
+            return rowids
+
+    @staticmethod
     def update_or_create(model: ArtifactModel) -> str:
-
         # enrichments
-        if model.enrichments is not None:
-            enrichments_rowid_list = []
-            for enrichment in model.enrichments:
-                if isinstance(enrichment, str):
-                    enrichments_rowid_list.append(enrichment)  # just link
-                    continue
-                elif isinstance(enrichment, EnrichmentModel):
-                    rowid = Enrichment.update_or_create(enrichment)  # update or create record
-                    enrichments_rowid_list.append(rowid)
-                else:
-                    raise Exception("Unsupported enrichment data type")
-
-            model.enrichments = enrichments_rowid_list
+        model.enrichments = Enrichment.batch_update(model.enrichments)
 
         fields = model_to_fields(model)
         if model.rowid is None:
@@ -210,104 +249,155 @@ class Artifact(object):
             rowid = WorksheetRow.update(Artifact.WORKSHEET_ID, model.rowid, fields)
         return rowid
 
+    @staticmethod
+    def batch_update(model_list: List[Union[ArtifactModel, str]]) -> Union[List[str], None]:
+        if model_list is not None:
+            rowids = []
+            for model in model_list:
+                if isinstance(model, str):
+                    rowids.append(model)  # just link
+                    continue
+                elif isinstance(model, ArtifactModel):
+                    rowid = Artifact.update_or_create(model)  # update or create record
+                    rowids.append(rowid)
+                else:
+                    raise Exception("Unsupported enrichment data type")
+
+            return rowids
+        else:
+            return model_list
+
 
 class Alert(object):
     WORKSHEET_ID = "alert"
-    ARTIFACT_FIELD_ID = "artifacts"
 
     def __init__(self):
         pass
 
     @staticmethod
-    def get(rowid, include_system_fields=False):
-        alert = WorksheetRow.get(Alert.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
-        artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, rowid, Alert.ARTIFACT_FIELD_ID, relation_worksheet_id=Artifact.WORKSHEET_ID,
-                                           include_system_fields=False)
-        alert[Alert.ARTIFACT_FIELD_ID] = artifacts
-        return alert
+    def get(rowid, include_system_fields=True) -> AlertModel:
+        result = WorksheetRow.get(Alert.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
+        model = AlertModel(**result)
+
+        # artifacts
+        model.artifacts = Artifact.list_by_rowids(model.artifacts)
+
+        # enrichments
+        model.enrichments = Enrichment.list_by_rowids(model.enrichments)
+
+        return model
 
     @staticmethod
-    def update(rowid, fields: list):
-        row_id = WorksheetRow.update(Alert.WORKSHEET_ID, rowid, fields)
-        return row_id
+    def list(model: Group, include_system_fields=True) -> List[AlertModel]:
+        filter = model.model_dump()
+        result = WorksheetRow.list(Alert.WORKSHEET_ID, filter, include_system_fields=include_system_fields)
+        alert_list = []
+        for alert_data in result:
+            alert_model = AlertModel(**alert_data)
+
+            # artifacts
+            alert_model.artifacts = Artifact.list_by_rowids(alert_model.artifacts)
+
+            # enrichments
+            alert_model.enrichments = Enrichment.list_by_rowids(alert_model.enrichments)
+
+            alert_list.append(alert_model)
+        return alert_list
 
     @staticmethod
-    def create(alert: InputAlert):
-        artifact_rowid_list = []
-        artifacts: list[dict] = alert.get("artifact", [])
-        for artifact in artifacts:
-            artifact_fields = [
-                {"id": "type", "value": artifact.get("type")},
-                {"id": "value", "value": artifact.get("value")},
-                {"id": "enrichment", "value": artifact.get("enrichment")},
-            ]
-
-            artifact_filter = {
-                "type": "group",
-                "logic": "AND",
-                "children": [
-                    {
-                        "type": "condition",
-                        "field": "type",
-                        "operator": "eq",
-                        "value": artifact.get("type")
-                    },
-                    {
-                        "type": "condition",
-                        "field": "value",
-                        "operator": "eq",
-                        "value": artifact.get("value")
-                    }
+    def list_by_rowids(rowids: Union[List[str], None], include_system_fields=True) -> Union[List[AlertModel], List[str], None]:
+        if rowids is not None and rowids != []:
+            filter_model = Group(
+                logic="AND",
+                children=[
+                    Condition(
+                        field="rowid",
+                        operator=Operator.IN,
+                        value=rowids
+                    )
                 ]
-            }
+            )
+            model_list = Alert.list(filter_model, include_system_fields=include_system_fields)
+            return model_list
+        else:
+            return rowids
 
-            row_id_list = Artifact.update_or_create(artifact_fields, artifact_filter)
-            artifact_rowid_list.extend(row_id_list)
+    @staticmethod
+    def update_or_create(model: AlertModel) -> str:
 
-        if alert.get("created_date") is None:
-            alert["created_date"] = get_current_time_str()
+        # artifacts
+        model.artifacts = Artifact.batch_update(model.artifacts)
 
-        alert_fields = [
-            {"id": "tags", "value": alert.get("tags"), "type": 2},
-            {"id": "severity", "value": alert.get("severity")},
-            {"id": "source", "value": alert.get("source")},
-            {"id": "alert_date", "value": alert.get("alert_date")},
-            {"id": "created_date", "value": alert.get("created_date")},
-            {"id": "reference", "value": alert.get("reference")},
-            {"id": "description", "value": alert.get("description")},
-            {"id": "raw_log", "value": alert.get("raw_log")},
-            {"id": "rule_id", "value": alert.get("rule_id")},
-            {"id": "rule_name", "value": alert.get("rule_name")},
-            {"id": "name", "value": alert.get("name")},
-            {"id": "summary_ai", "value": alert.get("summary_ai")},
-            {"id": "artifact", "value": artifact_rowid_list},
-        ]
+        # enrichments
+        model.enrichments = Enrichment.batch_update(model.enrichments)
 
-        # alert
-        row_id = WorksheetRow.create(Alert.WORKSHEET_ID, alert_fields)
+        fields = model_to_fields(model)
+        if model.rowid is None:
+            rowid = WorksheetRow.create(Alert.WORKSHEET_ID, fields)
+        else:
+            rowid = WorksheetRow.update(Alert.WORKSHEET_ID, model.rowid, fields)
+        return rowid
 
-        return row_id
+    @staticmethod
+    def batch_update(model_list: List[Union[AlertModel, str]]) -> Union[List[str], None]:
+        if model_list is not None:
+            rowids = []
+            for model in model_list:
+                if isinstance(model, str):
+                    rowids.append(model)  # just link
+                    continue
+                elif isinstance(model, AlertModel):
+                    rowid = Alert.update_or_create(model)  # update or create record
+                    rowids.append(rowid)
+                else:
+                    raise Exception("Unsupported enrichment data type")
+
+            return rowids
+        else:
+            return model_list
 
 
 class Case(object):
     WORKSHEET_ID = "case"
-    ALERT_FIELD_ID = "alert"
 
     def __init__(self):
         pass
 
     @staticmethod
-    def get(rowid, include_system_fields=False) -> InputCase:
-        case = WorksheetRow.get(Case.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
-        # alert id
-        alerts = WorksheetRow.relations(Case.WORKSHEET_ID, rowid, Case.ALERT_FIELD_ID, relation_worksheet_id=Alert.WORKSHEET_ID,
-                                        include_system_fields=include_system_fields)
-        for alert in alerts:
-            artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, alert.get("rowid"), Alert.ARTIFACT_FIELD_ID, relation_worksheet_id=Artifact.WORKSHEET_ID,
-                                               include_system_fields=include_system_fields)
-            alert[Alert.ARTIFACT_FIELD_ID] = artifacts
-        case[Case.ALERT_FIELD_ID] = alerts
-        return case
+    def get(rowid, include_system_fields=True) -> CaseModel:
+        result = WorksheetRow.get(Case.WORKSHEET_ID, rowid, include_system_fields=include_system_fields)
+        model = CaseModel(**result)
+
+        # alerts
+        model.alerts = Alert.list_by_rowids(model.alerts)
+
+        # enrichments
+        model.enrichments = Enrichment.list_by_rowids(model.enrichments)
+
+        # tickets
+        model.tickets = Ticket.list_by_rowids(model.tickets)
+
+        return model
+
+    @staticmethod
+    def list(model: Group, include_system_fields=True) -> List[CaseModel]:
+        filter = model.model_dump()
+        result = WorksheetRow.list(Case.WORKSHEET_ID, filter, include_system_fields=include_system_fields)
+        case_list = []
+        for case_data in result:
+            case_model = CaseModel(**case_data)
+
+            # alerts
+            case_model.alerts = Alert.list_by_rowids(case_model.alerts)
+
+            # enrichments
+            case_model.enrichments = Enrichment.list_by_rowids(case_model.enrichments)
+
+            # tickets
+            case_model.tickets = Ticket.list_by_rowids(case_model.tickets)
+
+            case_list.append(case_model)
+        return case_list
 
     @staticmethod
     def get_raw_data(rowid, include_system_fields=False) -> Dict:
@@ -321,14 +411,14 @@ class Case(object):
         case_clean = {key: case[key] for key in useful_case_fields if key in case}
 
         # alert id
-        alerts = WorksheetRow.relations(Case.WORKSHEET_ID, rowid, Case.ALERT_FIELD_ID, relation_worksheet_id=Alert.WORKSHEET_ID,
+        alerts = WorksheetRow.relations(Case.WORKSHEET_ID, rowid, "alerts", relation_worksheet_id=Alert.WORKSHEET_ID,
                                         include_system_fields=include_system_fields)
         alerts_clean = []
         for alert in alerts:
             useful_alert_fields = ["rowid", 'severity', 'rule_id', 'rule_name', 'id']
             alert_clean = {key: alert[key] for key in useful_alert_fields if key in alert}
 
-            artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, alert.get("rowid"), Alert.ARTIFACT_FIELD_ID, relation_worksheet_id=Artifact.WORKSHEET_ID,
+            artifacts = WorksheetRow.relations(Alert.WORKSHEET_ID, alert.get("rowid"), "artifacts", relation_worksheet_id=Artifact.WORKSHEET_ID,
                                                include_system_fields=include_system_fields)
             artifacts_clean = []
             for artifact in artifacts:
@@ -336,55 +426,30 @@ class Case(object):
                 artifact_clean = {key: artifact[key] for key in useful_artifact_fields if key in artifact}
                 artifacts_clean.append(artifact_clean)
 
-            alert_clean[Alert.ARTIFACT_FIELD_ID] = artifacts_clean
+            alert_clean["artifacts"] = artifacts_clean
             alerts_clean.append(alert_clean)
 
-        case_clean[Case.ALERT_FIELD_ID] = alerts_clean
+        case_clean["alerts"] = alerts_clean
         return case_clean
 
     @staticmethod
-    def create(case: InputCase):
-        case_fields = [
-            {"id": "title", "value": case["title"]},
-            {"id": "deduplication_key", "value": case["deduplication_key"]},
-            {"id": "alert", "value": case["alert"]},
-            {"id": "case_status", "value": case["case_status"]},
-            {"id": "created_date", "value": case["created_date"]},
-            {"id": "tags", "value": case["tags"], "type": 2},
-            {"id": "severity", "value": case["severity"]},
-            {"id": "type", "value": case["type"]},
-            {"id": "description", "value": case["description"]},
-            {"id": "workbook", "value": case["workbook"]},
-        ]
-        row_id = WorksheetRow.create(Case.WORKSHEET_ID, case_fields)
-        return row_id
+    def update_or_create(model: CaseModel) -> str:
 
-    @staticmethod
-    def update(row_id, fields: list):
-        row_id = WorksheetRow.update(Case.WORKSHEET_ID, row_id, fields)
-        return row_id
+        # alerts
+        model.alerts = Alert.batch_update(model.alerts)
 
-    @staticmethod
-    def get_by_deduplication_key(deduplication_key: str):
-        filter = {
-            "type": "group",
-            "logic": "AND",
-            "children": [
-                {
-                    "type": "condition",
-                    "field": "deduplication_key",
-                    "operator": "eq",
-                    "value": deduplication_key
-                },
-            ]
-        }
-        rows = WorksheetRow.list(Case.WORKSHEET_ID, filter)
-        if rows:
-            if len(rows) > 1:
-                logger.warning(f"found multiple rows with deduplication_key {deduplication_key}")
-            return rows[0]
+        # enrichments
+        model.enrichments = Enrichment.batch_update(model.enrichments)
+
+        # tickets
+        model.tickets = Ticket.batch_update(model.tickets)
+
+        fields = model_to_fields(model)
+        if model.rowid is None:
+            rowid = WorksheetRow.create(Case.WORKSHEET_ID, fields)
         else:
-            return None
+            rowid = WorksheetRow.update(Case.WORKSHEET_ID, model.rowid, fields)
+        return rowid
 
     @staticmethod
     def get_by_case_id(case_id: str):
@@ -407,21 +472,6 @@ class Case(object):
             return Case.get(rows[0]['rowid'])
         else:
             return None
-
-    @staticmethod
-    def load_workbook_md(workbook_name: str) -> str:
-        ## TODO remove this function
-
-        """
-        Read the content of DATA/WORKBOOK/{workbook_name}.md according to the workbook name and return a string.
-        The path is relative to the project root (two levels up to the asf folder).
-        """
-        base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-        md_path = os.path.join(base_dir, 'DATA', 'WORKBOOK', f"{workbook_name}.md")
-        if not os.path.exists(md_path):
-            raise FileNotFoundError(f"workbook md not found: {md_path}")
-        with open(md_path, 'r', encoding='utf-8') as f:
-            return f.read()
 
 
 class PlaybookStatus(StrEnum):
@@ -574,76 +624,3 @@ class Notice(object):
     def send(user, title, body=None):
         result = requests.post(SIRP_NOTICE_WEBHOOK, json={"title": title, "body": body, "user": user})
         return result
-
-
-def create_alert_with_group_rule(alert: InputAlert, rule_def: GroupRule) -> str:
-    """
-    Create alerts and cases using alert aggregation rules.
-    The function will automatically generate a deduplication fingerprint based on the definition of rule_def, and decide whether to create a new case or update an existing case.
-    """
-
-    # alert
-    row_id_alert = Alert.create(alert)
-
-    artifacts = alert.get("artifact", [])
-
-    # case
-    timestamp = string_to_timestamp(alert["alert_date"], "%Y-%m-%dT%H:%M:%SZ")
-    deduplication_key = rule_def.generate_deduplication_key(artifacts=artifacts, timestamp=timestamp)
-
-    row = Case.get_by_deduplication_key(deduplication_key)
-    if row is None:
-        if rule_def.workbook is None:
-            workbook = "# There is no workbook for this source."
-        else:
-            workbook = rule_def.workbook
-
-        case_status_new = OptionSet.get_option_key_by_name_and_value("case_status", "New")
-
-        case: InputCase = {
-            "title": rule_def.generate_case_title(artifacts=artifacts),
-            "deduplication_key": deduplication_key,
-            "alert": [row_id_alert],
-            "case_status": case_status_new,
-            "created_date": get_current_time_str(),
-            "tags": alert["tags"],
-            "severity": alert["severity"],
-            "type": rule_def.source,
-            "description": alert["description"],
-            "workbook": workbook,
-        }
-        row_id_create = Case.create(case)
-        return row_id_create
-    else:
-        row_id_case = row.get("rowid")
-        existing_alerts = row.get("alert", [])
-        if row_id_alert not in existing_alerts:
-            existing_alerts.append(row_id_alert)
-
-        case_field = [
-            {"id": "alert", "value": existing_alerts},
-        ]
-
-        # change case severity if new alert severity is higher
-        if rule_def.follow_alert_severity:
-            option_new_score = OptionSet.get_option_by_name_and_value("alert_case_severity", alert["severity"]).get("score", 0)
-
-            severity_value_exist = row.get("severity")
-            option_exist_score = OptionSet.get_option_by_name_and_value("alert_case_severity", severity_value_exist).get("score", 0)
-
-            if option_new_score > option_exist_score:
-                severity = alert["severity"]
-            else:
-                severity = severity_value_exist
-            case_field.append({"id": "severity", "value": severity})
-
-        # append alert tags to case tags
-        if rule_def.append_alert_tags:
-            tags_exist = row.get("tags", [])
-            for tag in alert["tags"]:
-                if tag not in tags_exist:
-                    tags_exist.append(tag)
-            case_field.append({"id": "tags", "value": tags_exist, "type": 2})
-
-        row_id_updated = Case.update(row_id_case, case_field)
-        return row_id_updated
